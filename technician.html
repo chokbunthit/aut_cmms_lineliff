@@ -1,0 +1,1982 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>AUT CMMS - ช่างซ่อมบำรุง (Technician View)</title>
+
+  <!-- Google Fonts & Central CSS -->
+  <link rel="stylesheet" href="css/style.css" />
+
+  <!-- FontAwesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" />
+
+  <!-- LINE LIFF SDK -->
+  <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+  <style>
+    /* Technician Portal Custom Styles */
+    :root {
+      --tech-accent: #0284c7;
+      --tech-accent-light: #e0f2fe;
+    }
+
+    .tech-header-badge {
+      background: rgba(37, 99, 235, 0.12);
+      color: var(--primary);
+      padding: 3px 8px;
+      border-radius: var(--radius-full);
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* Quick Filter Scroll */
+    .filter-scroll {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding-bottom: 6px;
+      margin-bottom: 12px;
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    .filter-scroll::-webkit-scrollbar {
+      display: none;
+    }
+
+    .filter-tab {
+      white-space: nowrap;
+      padding: 7px 14px;
+      border-radius: var(--radius-full);
+      font-size: 11.5px;
+      font-weight: 600;
+      background: white;
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+      min-height: 36px;
+    }
+
+    .filter-tab.active {
+      background: var(--primary-gradient);
+      color: white;
+      border-color: var(--primary);
+      box-shadow: 0 3px 10px rgba(37, 99, 235, 0.3);
+    }
+
+    .filter-tab .tab-badge {
+      background: rgba(0, 0, 0, 0.08);
+      padding: 1px 6px;
+      border-radius: 10px;
+      font-size: 10px;
+    }
+
+    .filter-tab.active .tab-badge {
+      background: rgba(255, 255, 255, 0.25);
+      color: white;
+    }
+
+    /* Search Box */
+    .search-box-tech {
+      position: relative;
+      margin-bottom: 14px;
+    }
+
+    .search-box-tech input {
+      width: 100%;
+      padding: 10px 14px 10px 38px;
+      background: white;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      font-size: 12.5px;
+      font-family: inherit;
+      outline: none;
+      box-shadow: var(--shadow-sm);
+      transition: all 0.2s;
+    }
+
+    .search-box-tech input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    }
+
+    .search-box-tech i {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-sub);
+      font-size: 14px;
+    }
+
+    /* Work Order Card */
+    .wo-card {
+      background: white;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 15px;
+      margin-bottom: 12px;
+      box-shadow: var(--shadow-sm);
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .wo-card:active {
+      transform: scale(0.985);
+      background-color: #fcfdfe;
+    }
+
+    .wo-card.priority-urgent {
+      border-left: 4px solid #ef4444;
+    }
+
+    .wo-card.priority-high {
+      border-left: 4px solid #f97316;
+    }
+
+    .wo-card.priority-medium {
+      border-left: 4px solid #3b82f6;
+    }
+
+    .wo-card.priority-low {
+      border-left: 4px solid #10b981;
+    }
+
+    .wo-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .wo-number {
+      font-size: 13.5px;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .wo-type-tag {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 4px;
+      text-transform: uppercase;
+    }
+
+    .tag-pm {
+      background: #ecfeff;
+      color: #0e7490;
+      border: 1px solid #a5f3fc;
+    }
+
+    .tag-cm {
+      background: #fef2f2;
+      color: #b91c1c;
+      border: 1px solid #fecaca;
+    }
+
+    .wo-subtasks-preview {
+      background: #f8fafc;
+      border: 1px solid #f1f5f9;
+      border-radius: var(--radius-sm);
+      padding: 8px 10px;
+      margin: 9px 0;
+      font-size: 11.5px;
+      color: var(--text-muted);
+    }
+
+    .wo-subtask-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 4px;
+      padding: 4px 8px;
+      border-radius: 6px;
+      background: white;
+      border: 1px solid #e2e8f0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      transition: all 0.15s ease;
+      cursor: pointer;
+    }
+
+    .wo-subtask-item:hover {
+      background: #eff6ff;
+      border-color: #bfdbfe;
+      color: #1d4ed8;
+      transform: translateX(2px);
+    }
+
+    .wo-subtask-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .btn-card-action {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      background: #f0fdf4;
+      color: #15803d;
+      border: 1px solid #bbf7d0;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-card-action:hover {
+      background: #16a34a;
+      color: white;
+      border-color: #16a34a;
+    }
+
+    .btn-card-action:active {
+      transform: scale(0.97);
+    }
+
+    /* Detail / Closing Drawer State View */
+    #detailDrawerContainer {
+      display: none;
+      animation: fadeIn 0.25s ease-in-out;
+    }
+
+    .drawer-top-info {
+      background: white;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 16px;
+      margin-bottom: 14px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    /* Accordion Card for PM Subtasks */
+    .accordion-card {
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      margin-bottom: 12px;
+      overflow: hidden;
+      background: white;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+      transition: all 0.2s ease-in-out;
+    }
+
+    .accordion-card.completed-task {
+      border-color: #86efac;
+      background: #ffffff;
+    }
+
+    .accordion-header {
+      padding: 12px 14px;
+      background: white;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      user-select: none;
+      gap: 8px;
+    }
+
+    .accordion-header:hover {
+      background: #f8fafc;
+    }
+
+    .accordion-card.completed-task .accordion-header {
+      background: #f0fdf4;
+    }
+
+    .acc-header-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .acc-arrow {
+      font-size: 12px;
+      color: #64748b;
+      transition: transform 0.2s ease;
+      cursor: pointer;
+    }
+
+    .acc-comp-code {
+      font-size: 13px;
+      font-weight: 700;
+      color: #1d4ed8;
+      letter-spacing: -0.2px;
+    }
+
+    .acc-comp-name {
+      font-size: 12.5px;
+      font-weight: 500;
+      color: #475569;
+    }
+
+    .accordion-body {
+      padding: 16px;
+      background: #ffffff;
+      border-top: 1px solid #f1f5f9;
+      display: none;
+    }
+
+    .accordion-body.open {
+      display: block;
+    }
+
+    /* Task Steps Reference Box (PM Style matching screenshot) */
+    .task-steps-box {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-bottom: 14px;
+    }
+
+    .task-steps-header {
+      font-size: 12.5px;
+      font-weight: 700;
+      color: #1e293b;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .task-steps-content {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .task-step-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      font-size: 11.5px;
+      color: #475569;
+      line-height: 1.45;
+    }
+
+    .task-step-num {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #dbeafe;
+      color: #1d4ed8;
+      font-size: 10px;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .badge-task-no {
+      background: #f0fdfa;
+      color: #0d9488;
+      border: 1px solid #99f6e4;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 6px;
+    }
+
+    .badge-pm-type {
+      background: #faf5ff;
+      color: #7e22ce;
+      border: 1px solid #e9d5ff;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 6px;
+    }
+
+    .badge-status-progress {
+      background: #eff6ff;
+      color: #2563eb;
+      border: 1px solid #bfdbfe;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 6px;
+    }
+
+    .badge-status-done {
+      background: #ecfdf5;
+      color: #059669;
+      border: 1px solid #a7f3d0;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 6px;
+    }
+
+    .btn-save-comp {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 8px 18px;
+      background: #059669;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 12.5px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 1px 3px rgba(5, 150, 105, 0.3);
+      transition: all 0.2s;
+    }
+
+    .btn-save-comp:hover {
+      background: #047857;
+    }
+
+    .btn-save-comp:active {
+      transform: scale(0.98);
+    }
+
+    /* Photo Upload Box & Canvas */
+    .photo-upload-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin: 10px 0;
+    }
+
+    .photo-box {
+      border: 2px dashed #cbd5e1;
+      border-radius: var(--radius-md);
+      padding: 10px;
+      text-align: center;
+      background: #f8fafc;
+      position: relative;
+      min-height: 110px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      overflow: hidden;
+      transition: all 0.2s;
+    }
+
+    .photo-box:active {
+      background: #e2e8f0;
+    }
+
+    .photo-box.has-image {
+      border-style: solid;
+      border-color: var(--primary);
+      padding: 0;
+    }
+
+    .photo-preview-img {
+      width: 100%;
+      height: 110px;
+      object-fit: cover;
+      display: block;
+    }
+
+    .photo-remove-btn {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      background: rgba(0, 0, 0, 0.65);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      cursor: pointer;
+      z-index: 10;
+    }
+
+    /* Sticky Bottom Action Bar */
+    .sticky-action-bar {
+      position: fixed;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100%;
+      max-width: 480px;
+      background: rgba(255, 255, 255, 0.98);
+      backdrop-filter: blur(16px);
+      border-top: 1px solid var(--border-color);
+      padding: 10px 16px;
+      z-index: 90;
+      box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.08);
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .btn-close-wo {
+      flex: 1;
+      height: 48px;
+      background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+      color: white;
+      border: none;
+      border-radius: var(--radius-md);
+      font-size: 13.5px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3);
+      transition: all 0.2s;
+    }
+
+    .btn-close-wo:active {
+      transform: scale(0.98);
+    }
+
+    .btn-close-wo:disabled {
+      background: #94a3b8;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .btn-subtask-save {
+      width: 100%;
+      padding: 9px 14px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: var(--radius-md);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      margin-top: 10px;
+      transition: all 0.2s;
+    }
+
+    .btn-subtask-save:active {
+      background: var(--primary-hover);
+      transform: scale(0.98);
+    }
+
+    /* Modal Sheet */
+    .modal-sheet {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.25s ease;
+    }
+
+    .modal-sheet.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .modal-sheet-content {
+      background: white;
+      width: 100%;
+      max-width: 480px;
+      border-radius: 20px 20px 0 0;
+      padding: 20px;
+      max-height: 85vh;
+      overflow-y: auto;
+      transform: translateY(100%);
+      transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+    }
+
+    .modal-sheet.active .modal-sheet-content {
+      transform: translateY(0);
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Loading Overlay -->
+  <div id="loadingOverlay">
+    <div class="loading-icon-wrapper">
+      <div class="loading-spinner"></div>
+      <i class="fa-solid fa-screwdriver-wrench loading-tool-icon"></i>
+    </div>
+    <div id="loadingText">กำลังโหลดข้อมูลงานซ่อม...</div>
+    <div id="loadingSubText">กรุณารอสักครู่</div>
+    <div class="loading-progress">
+      <div class="loading-progress-bar"></div>
+    </div>
+  </div>
+
+  <!-- App Container -->
+  <div class="app-container">
+
+    <!-- Top Header -->
+    <header class="app-header">
+      <div class="header-brand">
+        <button id="navBackBtn" style="display: none; border: none; background: none; font-size: 16px; color: var(--text-main); margin-right: 6px; cursor: pointer;" onclick="goBackToList()">
+          <i class="fa-solid fa-arrow-left"></i>
+        </button>
+        <div class="header-logo" style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);">
+          <i class="fa-solid fa-toolbox"></i>
+        </div>
+        <div>
+          <h1 class="header-title" id="pageTitle">ระบบช่างซ่อมบำรุง</h1>
+          <p class="header-subtitle" id="pageSubtitle">Technician Task Execution</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="header-icon-btn" onclick="refreshTechnicianData()" title="รีเฟรช">
+          <i class="fa-solid fa-rotate-right"></i>
+        </button>
+        <a href="index.html" class="header-icon-btn" title="หน้าหลัก">
+          <i class="fa-solid fa-house"></i>
+        </a>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="main-content fade-in" id="mainContent" style="padding-bottom: 90px;">
+
+      <!-- =========================================================
+           STATE 1: TASK LIST VIEW (รายการใบงานที่ได้รับมอบหมาย)
+      ========================================================== -->
+      <section id="taskListView">
+
+        <!-- Technician Info Banner -->
+        <div class="profile-card" style="background: linear-gradient(135deg, #0f172a 0%, #0369a1 50%, #0284c7 100%); padding: 14px 16px; margin-bottom: 12px;">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <img id="techAvatar" src="https://ui-avatars.com/api/?name=MT&background=0284c7&color=fff" alt="Avatar" class="profile-avatar" style="width: 44px; height: 44px;" />
+            <div style="flex: 1; min-width: 0;">
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span class="tech-header-badge" style="background: rgba(255,255,255,0.2); color: white;">
+                  <i class="fa-solid fa-id-badge"></i> แผนก MT
+                </span>
+                <span style="font-size: 11px; opacity: 0.85;">ช่างซ่อมบำรุง</span>
+              </div>
+              <div id="techName" style="font-size: 15px; font-weight: 700; color: white; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                กำลังโหลด...
+              </div>
+            </div>
+            <div style="text-align: right;">
+              <div id="activeTaskCount" style="font-size: 20px; font-weight: 800; color: #38bdf8; line-height: 1;">0</div>
+              <div style="font-size: 10px; opacity: 0.85; margin-top: 2px;">ใบงานค้าง</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Summary Stats Grid -->
+        <div class="stats-grid" style="grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px;">
+          <div class="stat-box" style="padding: 8px 10px; flex-direction: column; align-items: flex-start; gap: 2px;">
+            <span style="font-size: 10.5px; color: var(--text-muted);">ทั้งหมด</span>
+            <span id="statAllCount" style="font-size: 16px; font-weight: 700; color: var(--text-main);">0</span>
+          </div>
+          <div class="stat-box" style="padding: 8px 10px; flex-direction: column; align-items: flex-start; gap: 2px; border-color: #bfdbfe;">
+            <span style="font-size: 10.5px; color: #1d4ed8;">กำลังดำเนินการ</span>
+            <span id="statProgressCount" style="font-size: 16px; font-weight: 700; color: #1d4ed8;">0</span>
+          </div>
+          <div class="stat-box" style="padding: 8px 10px; flex-direction: column; align-items: flex-start; gap: 2px; border-color: #bbf7d0;">
+            <span style="font-size: 10.5px; color: #15803d;">เสร็จสิ้นแล้ว</span>
+            <span id="statDoneCount" style="font-size: 16px; font-weight: 700; color: #15803d;">0</span>
+          </div>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="search-box-tech">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" id="searchInput" placeholder="ค้นหา WO No, รหัสเครื่องจักร, สถานที่..." oninput="handleSearchFilter()" />
+        </div>
+
+        <!-- Filter Pills Tabs -->
+        <div class="filter-scroll">
+          <button class="filter-tab active" data-filter="all" onclick="setTaskFilter('all')">
+            <span>ทั้งหมด</span>
+            <span class="tab-badge" id="badgeFilterAll">0</span>
+          </button>
+          <button class="filter-tab" data-filter="progress" onclick="setTaskFilter('progress')">
+            <i class="fa-solid fa-spinner fa-spin-pulse" style="font-size: 10px; color: #2563eb;"></i>
+            <span>กำลังดำเนินการ</span>
+            <span class="tab-badge" id="badgeFilterProgress">0</span>
+          </button>
+          <button class="filter-tab" data-filter="pm" onclick="setTaskFilter('pm')">
+            <i class="fa-solid fa-calendar-check" style="font-size: 10px; color: #0891b2;"></i>
+            <span>งาน PM</span>
+            <span class="tab-badge" id="badgeFilterPM">0</span>
+          </button>
+          <button class="filter-tab" data-filter="urgent" onclick="setTaskFilter('urgent')">
+            <i class="fa-solid fa-fire" style="font-size: 10px; color: #ef4444;"></i>
+            <span>ด่วน/ฉุกเฉิน</span>
+            <span class="tab-badge" id="badgeFilterUrgent">0</span>
+          </button>
+          <button class="filter-tab" data-filter="done" onclick="setTaskFilter('done')">
+            <i class="fa-solid fa-circle-check" style="font-size: 10px; color: #16a34a;"></i>
+            <span>เสร็จสิ้น</span>
+            <span class="tab-badge" id="badgeFilterDone">0</span>
+          </button>
+        </div>
+
+        <!-- Work Orders List Container -->
+        <div id="workOrdersContainer">
+          <div class="empty-state">
+            <i class="fa-solid fa-spinner fa-spin"></i>
+            <p>กำลังโหลดรายการใบงาน...</p>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- =========================================================
+           STATE 2: WORK ORDER DETAIL / CLOSING VIEW (Drawer View)
+      ========================================================== -->
+      <section id="detailDrawerContainer">
+
+        <!-- Top WO Header Card -->
+        <div class="drawer-top-info" id="drawerHeaderCard">
+          <!-- Dynamic Content Rendered Here -->
+        </div>
+
+        <!-- Dynamic Form / Subtask View Container -->
+        <div id="woSpecificContent">
+          <!-- Render Accordion (PM) or Unified Form (CM/BM) -->
+        </div>
+
+        <!-- Expenses Summary (Optional / Readonly) -->
+        <div class="card" id="woExpensesCard" style="margin-top: 14px; display: none;">
+          <div class="card-header">
+            <span class="card-title">
+              <i class="fa-solid fa-coins" style="color: #eab308;"></i>
+              รายการค่าใช้จ่าย / อะไหล่ที่เบิก
+            </span>
+            <span id="expensesTotalText" style="font-size: 12px; font-weight: 700; color: #0f172a;">฿0.00</span>
+          </div>
+          <div id="expensesList" style="font-size: 11.5px; color: var(--text-muted);">
+            <!-- Dynamic Items -->
+          </div>
+        </div>
+
+      </section>
+
+    </main>
+
+    <!-- =========================================================
+         STICKY BOTTOM BAR (For State 2: Closing Action)
+    ========================================================== -->
+    <div id="stickyActionBar" class="sticky-action-bar" style="display: none;">
+      <button type="button" class="header-icon-btn" onclick="goBackToList()" style="width: 44px; height: 44px;" title="ย้อนกลับ">
+        <i class="fa-solid fa-arrow-left"></i>
+      </button>
+      <button type="button" class="btn-close-wo" id="btnCloseWorkOrder" onclick="openCloseModal()">
+        <i class="fa-solid fa-circle-check"></i>
+        <span>ปิดทั้งใบงาน (Complete WO)</span>
+      </button>
+    </div>
+
+    <!-- =========================================================
+         CONFIRMATION / CLOSING MODAL SHEET
+    ========================================================== -->
+    <div id="closeWOModal" class="modal-sheet">
+      <div class="modal-sheet-content">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;">
+          <h3 style="font-size: 15px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
+            <i class="fa-solid fa-clipboard-check" style="color: #16a34a;"></i>
+            ยืนยันการปิดใบงาน
+          </h3>
+          <button onclick="closeCloseModal()" style="border: none; background: none; font-size: 16px; color: var(--text-sub); cursor: pointer;">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 14px;">
+          คุณกำลังจะเปลี่ยนสถานะใบงาน <strong id="modalWoNoText" style="color: var(--primary);">-</strong> เป็น <strong>"เสร็จสิ้น (Completed)"</strong>
+        </p>
+
+        <form id="finalCloseForm" onsubmit="handleFinalCloseSubmit(event)">
+          <div class="form-group">
+            <label class="form-label">หมายเหตุการส่งมอบ / ข้อเสนอแนะช่าง</label>
+            <textarea id="modalTechnicianNote" class="form-textarea" placeholder="ระบุข้อความสรุปการส่งมอบเครื่องจักรคืนฝ่ายผลิต..." style="min-height: 70px;"></textarea>
+          </div>
+
+          <div style="display: flex; gap: 10px; margin-top: 16px;">
+            <button type="button" onclick="closeCloseModal()" class="form-input" style="flex: 1; text-align: center; cursor: pointer; background: #f1f5f9; font-weight: 600;">
+              ยกเลิก
+            </button>
+            <button type="submit" class="btn-primary" style="flex: 2; background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);">
+              <i class="fa-solid fa-check"></i> ยืนยันปิดใบงาน
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Bottom Navigation Bar -->
+    <nav class="bottom-nav" id="appBottomNav">
+      <a href="index.html" class="nav-item">
+        <i class="fa-solid fa-house"></i>
+        <span>หน้าหลัก</span>
+      </a>
+
+      <a href="technician.html" class="nav-item active">
+        <i class="fa-solid fa-toolbox"></i>
+        <span>งานช่าง MT</span>
+      </a>
+
+      <a href="create-ticket.html" class="nav-item-highlight" title="แจ้งซ่อม">
+        <i class="fa-solid fa-plus"></i>
+      </a>
+
+      <a href="tracking.html" class="nav-item">
+        <i class="fa-solid fa-list-check"></i>
+        <span>ติดตามงาน</span>
+      </a>
+
+      <a href="profile.html" class="nav-item">
+        <i class="fa-solid fa-user"></i>
+        <span>โปรไฟล์</span>
+      </a>
+    </nav>
+
+  </div>
+
+  <!-- Shared Scripts -->
+  <script src="js/liff-auth.js"></script>
+  <script src="js/api.js"></script>
+
+  <!-- Technician Portal Logic -->
+  <script>
+    let activeUser = null;
+    let rawTaskList = [];
+    let groupedWorkOrders = [];
+    let currentFilter = "all";
+    let currentActiveWO = null;
+    let currentDrawerData = null;
+
+    // เก็บภาพถ่าย Base64 แยกตาม ID ชิ้นงาน/ฟอร์ม
+    const taskPhotos = {};
+
+    window.addEventListener("load", async () => {
+      LiffAuth.showLoading("กำลังโหลดข้อมูลงานซ่อมบำรุง...", "กำลังเตรียมแดชบอร์ดช่าง");
+
+      try {
+        activeUser = await LiffAuth.init({
+          requiredAuth: false,
+          onReady: (user) => {
+            renderTechProfile(user);
+          }
+        });
+
+        // ดึงข้อมูลงานที่ได้รับมอบหมาย
+        await fetchTechnicianWork();
+      } catch (err) {
+        console.error("Technician Init Error:", err);
+      } finally {
+        LiffAuth.hideLoading();
+      }
+    });
+
+    function renderTechProfile(user) {
+      if (!user) return;
+      const nameEl = document.getElementById("techName");
+      const avatarEl = document.getElementById("techAvatar");
+
+      let sheetProfile = {};
+      if (user.userId) {
+        try {
+          const cached = localStorage.getItem(`cmms_user_sheet_${user.userId}`);
+          if (cached) sheetProfile = JSON.parse(cached);
+        } catch (e) { }
+      }
+
+      const displayName = sheetProfile.display_name || user.display_name || user.displayName || "ช่างซ่อมบำรุง MT";
+      const avatarUrl = sheetProfile.picture_url || user.pictureUrl || "";
+
+      if (nameEl) nameEl.textContent = displayName;
+      if (avatarEl && avatarUrl) avatarEl.src = avatarUrl;
+    }
+
+    /**
+     * ดึงข้อมูลงานที่ได้รับมอบหมายจาก GAS / API
+     */
+    async function fetchTechnicianWork() {
+      const userName = activeUser ? (activeUser.displayName || activeUser.userId) : "";
+      try {
+        const res = await CmmsApi.getMyWorkData(userName);
+        let items = [];
+        if (res && res.status === "success" && Array.isArray(res.data)) {
+          items = res.data;
+        } else if (Array.isArray(res)) {
+          items = res;
+        }
+
+        rawTaskList = items;
+        groupTasksByWorkOrder();
+        renderStatsAndBadges();
+        renderWorkOrdersList();
+      } catch (e) {
+        console.error("fetchTechnicianWork Error:", e);
+        const container = document.getElementById("workOrdersContainer");
+        if (container) {
+          container.innerHTML = `
+            <div class="empty-state">
+              <i class="fa-solid fa-triangle-exclamation" style="color: #ef4444;"></i>
+              <p>เกิดข้อผิดพลาดในการโหลดข้อมูลงาน</p>
+              <button onclick="fetchTechnicianWork()" class="btn-primary" style="margin-top: 10px; width: auto; display: inline-flex; padding: 6px 14px; font-size: 11px;">
+                ลองใหม่อีกครั้ง
+              </button>
+            </div>
+          `;
+        }
+      }
+    }
+
+    /**
+     * Group รายการ Tasks ตาม woNo เดียวกัน
+     */
+    function groupTasksByWorkOrder() {
+      const groupMap = new Map();
+
+      rawTaskList.forEach(task => {
+        const woNo = task.woNo || `WO-TEMP-${task.id || Math.random()}`;
+        if (!groupMap.has(woNo)) {
+          groupMap.set(woNo, {
+            woNo: woNo,
+            reqNo: task.reqNo || "-",
+            woType: task.woType || "CM",
+            workType: task.workType || "งานซ่อมทั่วไป",
+            priority: task.priority || "Medium",
+            status: task.status || "In Progress",
+            assignedDate: task.assignedDate || "-",
+            dueDate: task.dueDate || "-",
+            asset_code: task.asset_code || "-",
+            asset_name: task.asset_name || "เครื่องจักรทั่วไป",
+            location: task.location || "-",
+            department_name: task.department_name || "-",
+            subtasks: []
+          });
+        }
+
+        const woGroup = groupMap.get(woNo);
+        woGroup.subtasks.push({
+          id: task.id,
+          task_no: task.task_no || `TASK-${woGroup.subtasks.length + 1}`,
+          equipment: task.equipment || task.equipment_name || "อุปกรณ์ย่อย",
+          equipment_code: task.equipment_code || "",
+          pm_type: task.pm_type || ""
+        });
+      });
+
+      groupedWorkOrders = Array.from(groupMap.values());
+    }
+
+    /**
+     * คำนวณสรุปสถิติและ Badge
+     */
+    function renderStatsAndBadges() {
+      let countAll = groupedWorkOrders.length;
+      let countProgress = 0;
+      let countDone = 0;
+      let countPM = 0;
+      let countUrgent = 0;
+
+      groupedWorkOrders.forEach(wo => {
+        const s = (wo.status || "").toLowerCase();
+        const p = (wo.priority || "").toLowerCase();
+        const t = (wo.woType || "").toUpperCase();
+
+        if (s.includes("done") || s.includes("เสร็จ") || s.includes("comp")) {
+          countDone++;
+        } else {
+          countProgress++;
+        }
+
+        if (t.includes("PM")) countPM++;
+        if (p.includes("urgent") || p.includes("high") || p.includes("ด่วน")) countUrgent++;
+      });
+
+      document.getElementById("statAllCount").textContent = countAll;
+      document.getElementById("statProgressCount").textContent = countProgress;
+      document.getElementById("statDoneCount").textContent = countDone;
+      document.getElementById("activeTaskCount").textContent = countProgress;
+
+      document.getElementById("badgeFilterAll").textContent = countAll;
+      document.getElementById("badgeFilterProgress").textContent = countProgress;
+      document.getElementById("badgeFilterPM").textContent = countPM;
+      document.getElementById("badgeFilterUrgent").textContent = countUrgent;
+      document.getElementById("badgeFilterDone").textContent = countDone;
+    }
+
+    /**
+     * Filter และค้นหา Work Orders
+     */
+    function setTaskFilter(filterName) {
+      currentFilter = filterName;
+      document.querySelectorAll(".filter-tab").forEach(btn => {
+        if (btn.dataset.filter === filterName) {
+          btn.classList.add("active");
+        } else {
+          btn.classList.remove("active");
+        }
+      });
+      renderWorkOrdersList();
+    }
+
+    function handleSearchFilter() {
+      renderWorkOrdersList();
+    }
+
+    /**
+     * Render รายการ Work Orders ใน State 1
+     */
+    function renderWorkOrdersList() {
+      const container = document.getElementById("workOrdersContainer");
+      const searchKeyword = (document.getElementById("searchInput")?.value || "").toLowerCase().trim();
+
+      const filtered = groupedWorkOrders.filter(wo => {
+        // 1. Filter by Status / Type
+        const s = (wo.status || "").toLowerCase();
+        const p = (wo.priority || "").toLowerCase();
+        const t = (wo.woType || "").toUpperCase();
+
+        if (currentFilter === "progress") {
+          if (s.includes("done") || s.includes("เสร็จ") || s.includes("comp")) return false;
+        } else if (currentFilter === "done") {
+          if (!s.includes("done") && !s.includes("เสร็จ") && !s.includes("comp")) return false;
+        } else if (currentFilter === "pm") {
+          if (!t.includes("PM")) return false;
+        } else if (currentFilter === "urgent") {
+          if (!p.includes("urgent") && !p.includes("high") && !p.includes("ด่วน")) return false;
+        }
+
+        // 2. Filter by Search Query
+        if (searchKeyword) {
+          const matchTarget = `${wo.woNo} ${wo.reqNo} ${wo.asset_code} ${wo.asset_name} ${wo.location} ${wo.workType} ${wo.department_name}`.toLowerCase();
+          if (!matchTarget.includes(searchKeyword)) return false;
+        }
+
+        return true;
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <i class="fa-solid fa-clipboard-list"></i>
+            <p style="font-size: 13px; font-weight: 600; color: var(--text-main); margin-top: 4px;">ไม่พบใบงานที่ค้นหา</p>
+            <p style="font-size: 11.5px; margin-top: 2px;">ไม่มีรายการงานในหมวดนี้</p>
+          </div>
+        `;
+        return;
+      }
+
+      let html = "";
+      filtered.forEach(wo => {
+        const isPM = (wo.woType || "").toUpperCase().includes("PM");
+        const typeTagClass = isPM ? "tag-pm" : "tag-cm";
+        const typeLabel = isPM ? "PM (Preventive)" : "CM (Breakdown)";
+
+        let priorityClass = "priority-medium";
+        let priorityBadge = `<span class="badge" style="background: #eff6ff; color: #1d4ed8;">ปกติ</span>`;
+        const p = (wo.priority || "").toLowerCase();
+        if (p.includes("urgent") || p.includes("ฉุกเฉิน")) {
+          priorityClass = "priority-urgent";
+          priorityBadge = `<span class="badge" style="background: #fee2e2; color: #b91c1c;"><i class="fa-solid fa-fire"></i> ด่วนมาก</span>`;
+        } else if (p.includes("high") || p.includes("สูง")) {
+          priorityClass = "priority-high";
+          priorityBadge = `<span class="badge" style="background: #ffedd5; color: #c2410c;">ด่วน</span>`;
+        } else if (p.includes("low") || p.includes("ต่ำ")) {
+          priorityClass = "priority-low";
+          priorityBadge = `<span class="badge" style="background: #ecfdf5; color: #15803d;">ต่ำ</span>`;
+        }
+
+        const isDone = (wo.status || "").toLowerCase().includes("done") || (wo.status || "").toLowerCase().includes("comp");
+        const statusBadge = isDone 
+          ? `<span class="badge badge-completed"><i class="fa-solid fa-check"></i> เสร็จสิ้น</span>`
+          : `<span class="badge badge-progress"><i class="fa-solid fa-clock"></i> กำลังทำ</span>`;
+
+        // Subtasks preview list
+        let subtasksHtml = "";
+        if (wo.subtasks && wo.subtasks.length > 0) {
+          const previewList = wo.subtasks.slice(0, 2);
+          subtasksHtml = `
+            <div class="wo-subtasks-preview">
+              <div style="font-weight: 600; margin-bottom: 4px; color: var(--text-main); display: flex; justify-content: space-between; align-items: center;">
+                <span><i class="fa-solid fa-list-check" style="color: var(--primary); margin-right: 4px;"></i>จุดตรวจเช็ค (${wo.subtasks.length} รายการ):</span>
+                <span style="font-size: 10px; color: #64748b; font-weight: normal;">แตะจุดที่ต้องการเปิด</span>
+              </div>
+              ${previewList.map((st, sIdx) => {
+                const targetIdent = st.equipment_code || st.equipment || st.task_no || "";
+                return `
+                <div class="wo-subtask-item" onclick="openWorkOrderDetail('${wo.woNo}', '${encodeURIComponent(targetIdent)}')" title="แตะเพื่อเปิดกรอกข้อมูลจุดนี้โดยตรง">
+                  <i class="fa-regular fa-circle-dot" style="font-size: 8px; color: var(--primary);"></i>
+                  <span style="font-weight: 600; color: #1e293b;">${escapeHtml(st.equipment)}</span>
+                  ${st.equipment_code ? `<span style="font-size: 10px; color: #64748b;">(${escapeHtml(st.equipment_code)})</span>` : ""}
+                  <i class="fa-solid fa-arrow-right" style="font-size: 9px; color: #94a3b8; margin-left: auto;"></i>
+                </div>
+              `;
+              }).join("")}
+              ${wo.subtasks.length > 2 ? `
+                <div onclick="openWorkOrderDetail('${wo.woNo}', 'ALL')" style="font-size: 11px; color: var(--primary); font-weight: 700; margin-top: 5px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; padding: 2px 4px;" title="เปิดดูจุดตรวจเช็คทั้งหมด">
+                  <span>+ ดูเพิ่มอีก ${wo.subtasks.length - 2} รายการ (เปิดดูทั้งหมด)</span>
+                  <i class="fa-solid fa-chevron-right" style="font-size: 9px;"></i>
+                </div>
+              ` : ""}
+            </div>
+          `;
+        }
+
+        html += `
+          <div class="wo-card ${priorityClass}">
+            <div class="wo-header">
+              <div>
+                <div class="wo-number">
+                  <span>${wo.woNo}</span>
+                  <span class="wo-type-tag ${typeTagClass}">${typeLabel}</span>
+                </div>
+                <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">
+                  Ref Req: <strong>${wo.reqNo}</strong>
+                </div>
+              </div>
+              <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+                ${statusBadge}
+                ${priorityBadge}
+              </div>
+            </div>
+
+            <div style="margin: 8px 0;">
+              <div style="font-size: 13.5px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 6px;">
+                <i class="fa-solid fa-cube" style="color: var(--primary); font-size: 12px;"></i>
+                <span>${wo.asset_code} - ${wo.asset_name}</span>
+              </div>
+              <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 3px; display: flex; align-items: center; gap: 8px;">
+                <span><i class="fa-solid fa-location-dot" style="color: #64748b; margin-right: 3px;"></i>${wo.location}</span>
+                <span>•</span>
+                <span>${wo.department_name}</span>
+              </div>
+            </div>
+
+            ${subtasksHtml}
+
+            <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: var(--text-sub); border-top: 1px dashed var(--border-color); padding-top: 8px; margin-top: 6px;">
+              <span><i class="fa-regular fa-calendar" style="margin-right: 4px;"></i>กำหนดเสร็จ: ${wo.dueDate}</span>
+              <button type="button" class="btn-card-action" onclick="openWorkOrderDetail('${wo.woNo}', 'ALL')" title="เปิดใบงานเพื่อดูและบันทึกปิดงาน">
+                <i class="fa-solid fa-folder-open"></i>
+                <span>เปิดใบงาน / ปิดงาน</span>
+                <i class="fa-solid fa-chevron-right" style="font-size: 9px;"></i>
+              </button>
+            </div>
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+    }
+
+    /**
+     * =========================================================
+     * STATE 2: DRAWER / DETAIL VIEW LOGIC
+     * =========================================================
+     */
+    async function openWorkOrderDetail(woNo, targetKeyOrAction = null) {
+      currentActiveWO = woNo;
+      LiffAuth.showLoading("กำลังโหลดข้อมูลใบงาน...", woNo);
+
+      try {
+        const data = await CmmsApi.getWODrawerData(woNo);
+        currentDrawerData = data;
+
+        // Switch Screen State to Detail View
+        document.getElementById("taskListView").style.display = "none";
+        document.getElementById("detailDrawerContainer").style.display = "block";
+        document.getElementById("stickyActionBar").style.display = "flex";
+        document.getElementById("appBottomNav").style.display = "none";
+        document.getElementById("navBackBtn").style.display = "inline-block";
+        document.getElementById("pageTitle").textContent = woNo;
+        document.getElementById("pageSubtitle").textContent = "บันทึกผลการปฏิบัติงาน";
+
+        renderDrawerHeader(data);
+        renderWOSpecificBody(data, targetKeyOrAction);
+        renderExpenses(data);
+
+        // Scroll logic based on targetKeyOrAction
+        if (targetKeyOrAction && targetKeyOrAction !== 'ALL') {
+          setTimeout(() => {
+            const targetRaw = decodeURIComponent(targetKeyOrAction).toLowerCase().trim();
+            const allCards = document.querySelectorAll('.accordion-card');
+            let targetCard = null;
+
+            for (const card of allCards) {
+              if (card.id && card.id.toLowerCase().includes(targetRaw)) {
+                targetCard = card;
+                break;
+              }
+            }
+            if (!targetCard) {
+              for (const card of allCards) {
+                if (card.textContent && card.textContent.toLowerCase().includes(targetRaw)) {
+                  targetCard = card;
+                  break;
+                }
+              }
+            }
+
+            if (targetCard) {
+              targetCard.scrollIntoView({ behavior: "smooth", block: "center" });
+            } else {
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }
+          }, 250);
+        } else {
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }
+      } catch (e) {
+        console.error("openWorkOrderDetail Error:", e);
+        alert("ไม่สามารถโหลดรายละเอียดใบงานได้ กรุณาลองใหม่อีกครั้ง");
+        goBackToList();
+      } finally {
+        LiffAuth.hideLoading();
+      }
+    }
+
+    function goBackToList() {
+      document.getElementById("detailDrawerContainer").style.display = "none";
+      document.getElementById("stickyActionBar").style.display = "none";
+      document.getElementById("taskListView").style.display = "block";
+      document.getElementById("appBottomNav").style.display = "flex";
+      document.getElementById("navBackBtn").style.display = "none";
+      document.getElementById("pageTitle").textContent = "ระบบช่างซ่อมบำรุง";
+      document.getElementById("pageSubtitle").textContent = "Technician Task Execution";
+      currentActiveWO = null;
+    }
+
+    /**
+     * Render Top Header Info of WO Detail
+     */
+    function renderDrawerHeader(data) {
+      const headerContainer = document.getElementById("drawerHeaderCard");
+      const wo = data.wo || {};
+      const req = data.request || {};
+      const asset = data.assetInfo || {};
+
+      const targetWO = groupedWorkOrders.find(w => w.woNo === (wo.woNo || wo.wo_code || currentActiveWO));
+      const isPM = (
+        (wo.woType || "").toUpperCase().includes("PM") ||
+        (wo.request_type || "").toUpperCase().includes("PM") ||
+        (wo.wo_type || "").toUpperCase().includes("PM") ||
+        (wo.workType || "").toUpperCase().includes("PM") ||
+        (targetWO && (targetWO.woType || "").toUpperCase().includes("PM")) ||
+        (currentActiveWO || "").toUpperCase().includes("PM") ||
+        (data.components && data.components.length > 0)
+      );
+
+      const isDone = (wo.status || (targetWO && targetWO.status) || "").toLowerCase().includes("done") || 
+                     (wo.status || "").toLowerCase().includes("comp") || 
+                     (wo.status || "").toLowerCase().includes("เสร็จ");
+
+      const woCode = wo.woNo || wo.wo_code || currentActiveWO || "-";
+      const reqCode = req.reqNo || req.request_code || wo.request_code || wo.reqNo || (targetWO && targetWO.reqNo) || "-";
+      const assetCode = asset.assetCode || asset.asset_code || wo.asset_code || (targetWO && targetWO.asset_code) || "-";
+      const assetName = asset.assetName || asset.asset_name || (targetWO && targetWO.asset_name) || "เครื่องจักรทั่วไป";
+      const location = asset.location || (targetWO && targetWO.location) || "-";
+      const dept = req.department || asset.department || (targetWO && targetWO.department_name) || "-";
+      const brand = asset.brand || "";
+      const model = asset.model || asset.description || "";
+      const brandModel = (brand || model) ? `${brand} ${model}`.trim() : "-";
+      const dueDate = wo.dueDate || wo.due_date || (targetWO && targetWO.dueDate) || "-";
+      const symptom = req.symptom || req.issue_description || (isPM ? "บำรุงรักษาเชิงป้องกันตามแผนงาน" : "-");
+
+      headerContainer.innerHTML = `
+        <div style="display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 10px;">
+          <div>
+            <div style="font-size: 16px; font-weight: 800; color: var(--text-main);">
+              ${escapeHtml(woCode)}
+            </div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">
+              เลขที่แจ้งซ่อม: <strong>${escapeHtml(reqCode)}</strong>
+            </div>
+          </div>
+          <div style="text-align: right;">
+            <span class="badge ${isDone ? 'badge-completed' : 'badge-progress'}" style="font-size: 11px;">
+              ${isDone ? '<i class="fa-solid fa-check"></i> เสร็จสิ้น' : '<i class="fa-solid fa-clock"></i> กำลังดำเนินการ'}
+            </span>
+          </div>
+        </div>
+
+        <div style="background: #f8fafc; border-radius: var(--radius-md); padding: 12px; margin-bottom: 10px;">
+          <div style="font-size: 13px; font-weight: 700; color: var(--primary); margin-bottom: 4px;">
+            <i class="fa-solid fa-cube" style="margin-right: 4px;"></i>${escapeHtml(assetCode)} : ${escapeHtml(assetName)}
+          </div>
+          <div style="font-size: 11.5px; color: var(--text-muted); display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-top: 6px;">
+            <div><strong>สถานที่:</strong> ${escapeHtml(location)}</div>
+            <div><strong>แผนก:</strong> ${escapeHtml(dept)}</div>
+            <div><strong>ยี่ห้อ/รุ่น:</strong> ${escapeHtml(brandModel)}</div>
+            <div><strong>กำหนดเสร็จ:</strong> ${escapeHtml(dueDate)}</div>
+          </div>
+        </div>
+
+        <div style="font-size: 12px; color: var(--text-main); background: #fffbeb; border: 1px solid #fef3c7; border-radius: var(--radius-sm); padding: 8px 10px;">
+          <div style="font-weight: 700; color: #b45309; font-size: 11px; margin-bottom: 2px;">
+            <i class="fa-solid fa-triangle-exclamation" style="margin-right: 3px;"></i>อาการ/ปัญหาที่แจ้ง:
+          </div>
+          <div>${escapeHtml(symptom)}</div>
+        </div>
+      `;
+    }
+
+    /**
+     * Render PM Accordion OR CM Unified Form
+     */
+    function renderWOSpecificBody(data, targetKeyOrAction = null) {
+      const container = document.getElementById("woSpecificContent");
+      const wo = data.wo || {};
+      const targetWO = groupedWorkOrders.find(w => w.woNo === (wo.woNo || wo.wo_code || currentActiveWO));
+
+      const isPM = (
+        (wo.woType || "").toUpperCase().includes("PM") ||
+        (wo.request_type || "").toUpperCase().includes("PM") ||
+        (wo.wo_type || "").toUpperCase().includes("PM") ||
+        (wo.workType || "").toUpperCase().includes("PM") ||
+        (targetWO && (targetWO.woType || "").toUpperCase().includes("PM")) ||
+        (currentActiveWO || "").toUpperCase().includes("PM") ||
+        (data.components && data.components.length > 0)
+      );
+
+      if (isPM) {
+        // ================= PM: ACCORDION VIEW =================
+        const components = data.components || [];
+        if (components.length === 0) {
+          container.innerHTML = `<div class="empty-state"><p>ไม่มีรายการตรวจสอบย่อย</p></div>`;
+          return;
+        }
+
+        const isExpandAll = targetKeyOrAction === 'ALL';
+        allAccordionsExpanded = isExpandAll;
+
+        let html = `
+          <div style="display: flex; align-items: center; justify-content: space-between; margin: 16px 0 10px;">
+            <span style="font-size: 13px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 6px;">
+              <i class="fa-solid fa-list-check" style="color: #0891b2;"></i>
+              COMPONENTS IN THIS WO: (${components.length} Tasks)
+            </span>
+            <button type="button" id="btnToggleAll" onclick="toggleAllAccordions()" style="background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 6px; padding: 4px 10px; font-size: 11px; font-weight: 600; color: var(--primary); cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s;">
+              <i class="fa-solid fa-arrows-up-down" style="font-size: 10px;"></i>
+              <span id="btnToggleAllText">${isExpandAll ? 'พับทั้งหมด' : 'เปิดทั้งหมด'}</span>
+            </button>
+          </div>
+        `;
+
+        const targetRaw = decodeURIComponent(targetKeyOrAction || "").trim().toLowerCase();
+
+        components.forEach((comp, idx) => {
+          const compKey = `${comp.task_no || 'T'}_${comp.equipment_code || comp.component_code || 'C'}_${idx}`.replace(/[^a-zA-Z0-9]/g, '_');
+          const isDone = (comp.status || "").toLowerCase().includes("done") || (comp.status || "").toLowerCase().includes("comp");
+
+          const cCode = String(comp.equipment_code || comp.component_code || "").trim().toLowerCase();
+          const cName = String(comp.equipment_name || comp.component_name || comp.equipment || "").trim().toLowerCase();
+          const cTask = String(comp.task_no || "").trim().toLowerCase();
+
+          let shouldOpen = false;
+          if (isExpandAll) {
+            shouldOpen = true;
+          } else if (targetRaw) {
+            if (
+              (cCode && (targetRaw === cCode || targetRaw.includes(cCode) || cCode.includes(targetRaw))) ||
+              (cName && (targetRaw === cName || targetRaw.includes(cName) || cName.includes(targetRaw))) ||
+              (cTask && (targetRaw === cTask || targetRaw.includes(cTask) || cTask.includes(targetRaw))) ||
+              compKey.toLowerCase().includes(targetRaw)
+            ) {
+              shouldOpen = true;
+            }
+          } else if (idx === 0) {
+            shouldOpen = true;
+          }
+
+          html += `
+            <div class="accordion-card ${isDone ? 'completed-task' : ''}" id="accCard_${compKey}">
+              <div class="accordion-header" onclick="toggleAccordion('${compKey}')">
+                <div class="acc-header-left">
+                  <i class="fa-solid fa-chevron-down acc-arrow" id="arrow_${compKey}" style="${shouldOpen ? 'transform: rotate(180deg);' : ''}"></i>
+                  <span class="acc-comp-code">
+                    ${escapeHtml(comp.equipment_code || comp.component_code || '')}
+                  </span>
+                  <span class="acc-comp-name">
+                    ${escapeHtml(comp.equipment_name || comp.component_name || comp.equipment || `อุปกรณ์ชิ้นที่ ${idx+1}`)}
+                  </span>
+                  ${comp.task_no ? `<span class="badge-task-no">${escapeHtml(comp.task_no)}</span>` : ""}
+                  ${comp.pm_type ? `<span class="badge-pm-type">${escapeHtml(comp.pm_type)}</span>` : ""}
+                </div>
+                <div class="accordion-header-right">
+                  <span id="badgeTask_${compKey}" class="${isDone ? 'badge-status-done' : 'badge-status-progress'}">
+                    ${isDone ? '<i class="fa-solid fa-check"></i> เสร็จสิ้น' : 'In Progress'}
+                  </span>
+                </div>
+              </div>
+
+              <div class="accordion-body ${shouldOpen ? 'open' : ''}" id="body_${compKey}">
+                <!-- 1. Task Steps Reference Box (Steps list) -->
+                <div class="task-steps-box" id="taskStepsBox_${compKey}">
+                  <div class="task-steps-header">
+                    <i class="fa-solid fa-list-check" style="color: #2563eb;"></i>
+                    <span>Task: ${escapeHtml(comp.task_no || '-')} | ${escapeHtml(comp.pm_type || '-')}</span>
+                  </div>
+                  <div class="task-steps-content" id="taskStepsList_${compKey}">
+                    <div style="font-size: 11px; color: var(--text-muted);">
+                      <i class="fa-solid fa-spinner animate-spin"></i> กำลังโหลดขั้นตอน...
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 2. Row 1: Root Cause & Action Taken (2 Columns Grid) -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label">Root Cause</label>
+                    <input type="text" id="rc_${compKey}" class="form-input" placeholder="--" value="${escapeHtml(comp.root_cause || '')}" />
+                  </div>
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label">Action Taken</label>
+                    <input type="text" id="at_${compKey}" class="form-input" placeholder="--" value="${escapeHtml(comp.action_taken || '')}" />
+                  </div>
+                </div>
+
+                <!-- 3. Row 2: Start DateTime, End DateTime, Working Time (hrs) (3 Columns Grid) -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label">Start DateTime</label>
+                    <input type="datetime-local" id="sd_${compKey}" class="form-input" value="${formatDateTimeLocal(comp.start_date)}" onchange="calcWorkingTime('${compKey}')" />
+                  </div>
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label">End DateTime</label>
+                    <input type="datetime-local" id="ed_${compKey}" class="form-input" value="${formatDateTimeLocal(comp.end_date)}" onchange="calcWorkingTime('${compKey}')" />
+                  </div>
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label">Working Time (hrs)</label>
+                    <input type="number" step="0.1" id="wt_${compKey}" class="form-input" placeholder="ชม." value="${comp.working_time || ''}" />
+                  </div>
+                </div>
+
+                <!-- 4. Row 3: Down Time (hrs) & Measured Value (2 Columns Grid) -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label">Down Time (hrs)</label>
+                    <input type="number" step="0.1" id="dt_${compKey}" class="form-input" placeholder="ชม." value="${comp.down_time || ''}" />
+                  </div>
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label">Measured Value</label>
+                    <input type="text" id="mv_${compKey}" class="form-input" placeholder="--" value="${escapeHtml(comp.measured_value || '')}" />
+                  </div>
+                </div>
+
+                <!-- 5. Row 4: Image Before & Image Result (2 Columns Grid) -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                  <!-- Before -->
+                  <div>
+                    <label class="form-label">Image Before</label>
+                    <input type="file" id="cam_before_${compKey}" accept="image/*" capture="environment" style="display: none;" onchange="handleImageSelected(this, 'before_${compKey}')" />
+                    <div class="photo-box ${comp.image_before ? 'has-image' : ''}" id="box_before_${compKey}" onclick="triggerCamera('cam_before_${compKey}')" style="min-height: 80px;">
+                      ${comp.image_before ? `
+                        <img src="${comp.image_before}" class="photo-preview-img" alt="Before Photo" />
+                        <button type="button" class="photo-remove-btn" onclick="event.stopPropagation(); removePhoto('before_${compKey}')"><i class="fa-solid fa-xmark"></i></button>
+                      ` : `
+                        <div style="display: flex; align-items: center; gap: 6px; color: #64748b; font-size: 11.5px; font-weight: 600;">
+                          <i class="fa-solid fa-camera" style="font-size: 16px; color: #2563eb;"></i>
+                          <span>เลือกไฟล์ / ถ่ายรูป</span>
+                        </div>
+                      `}
+                    </div>
+                  </div>
+                  <!-- After -->
+                  <div>
+                    <label class="form-label">Image Result</label>
+                    <input type="file" id="cam_after_${compKey}" accept="image/*" capture="environment" style="display: none;" onchange="handleImageSelected(this, 'after_${compKey}')" />
+                    <div class="photo-box ${comp.image_result ? 'has-image' : ''}" id="box_after_${compKey}" onclick="triggerCamera('cam_after_${compKey}')" style="min-height: 80px;">
+                      ${comp.image_result ? `
+                        <img src="${comp.image_result}" class="photo-preview-img" alt="Result Photo" />
+                        <button type="button" class="photo-remove-btn" onclick="event.stopPropagation(); removePhoto('after_${compKey}')"><i class="fa-solid fa-xmark"></i></button>
+                      ` : `
+                        <div style="display: flex; align-items: center; gap: 6px; color: #64748b; font-size: 11.5px; font-weight: 600;">
+                          <i class="fa-solid fa-camera" style="font-size: 16px; color: #059669;"></i>
+                          <span>เลือกไฟล์ / ถ่ายรูป</span>
+                        </div>
+                      `}
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 6. Row 5: Save Component Result Button -->
+                <div style="display: flex; justify-content: flex-end; margin-top: 14px;">
+                  <button type="button" class="btn-save-comp" onclick="saveSubTask('${compKey}', '${comp.task_no || ''}', '${comp.equipment_code || comp.component_code || ''}')">
+                    <i class="fa-solid fa-floppy-disk"></i> บันทึก
+                  </button>
+                </div>
+              </div>
+            </div>
+          `;
+        });
+
+        container.innerHTML = html;
+
+        // Load Task Steps for all PM components
+        components.forEach((comp, idx) => {
+          const compKey = `${comp.task_no || 'T'}_${comp.equipment_code || comp.component_code || 'C'}_${idx}`.replace(/[^a-zA-Z0-9]/g, '_');
+          loadTaskStepsForPM(compKey, comp.task_no, comp.pm_type);
+        });
+
+      } else {
+        // ================= CM / BREAKDOWN: UNIFIED CLOSING FORM =================
+        const closing = data.closingForm || {};
+        container.innerHTML = `
+          <div class="card" style="margin-top: 14px;">
+            <div class="card-header">
+              <span class="card-title">
+                <i class="fa-solid fa-wrench" style="color: #ef4444;"></i>
+                บันทึกการซ่อมแซม (Breakdown Report)
+              </span>
+              <span style="font-size: 10.5px; color: var(--text-muted);">CM Form</span>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">สาเหตุของปัญหา / ความเสียหาย (Root Cause) <span class="required">*</span></label>
+              <textarea id="cmRootCause" class="form-textarea" placeholder="ระบุสาเหตุที่ทำให้เครื่องจักรหยุดทำงานหรือเสียหาย...">${closing.rootCause || ''}</textarea>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">วิธีการแก้ไข / งานที่ทำ (Action Taken) <span class="required">*</span></label>
+              <textarea id="cmActionTaken" class="form-textarea" placeholder="ระบุขั้นตอนการแก้ไข เช่น เปลี่ยนอะไหล่, ปรับเทียบระบบ...">${closing.actionTaken || ''}</textarea>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+              <div class="form-group">
+                <label class="form-label">เวลาที่ใช้ซ่อม (Work Time นาที)</label>
+                <input type="number" id="cmWorkTime" class="form-input" placeholder="นาที" value="${closing.workTimeMinutes || 30}" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">เครื่องหยุดทำงาน (Downtime นาที)</label>
+                <input type="number" id="cmDowntime" class="form-input" placeholder="นาที" value="${closing.downtimeMinutes || 45}" />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">รายการอะไหล่ที่ใช้ (Spare Parts Used)</label>
+              <input type="text" id="cmSpareParts" class="form-input" placeholder="เช่น ลูกปืน SKF x2, V-Belt B-42 x1" value="${closing.spareParts || ''}" />
+            </div>
+
+            <!-- Before & After Photos -->
+            <div style="font-size: 11px; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">
+              <i class="fa-solid fa-camera" style="margin-right: 4px;"></i>รูปถ่ายงานซ่อม (Before / After)
+            </div>
+            <div class="photo-upload-grid">
+              <!-- Before -->
+              <div>
+                <input type="file" id="cm_cam_before" accept="image/*" capture="environment" style="display: none;" onchange="handleImageSelected(this, 'cm_before')" />
+                <div class="photo-box" id="box_cm_before" onclick="triggerCamera('cm_cam_before')">
+                  <i class="fa-solid fa-camera" style="font-size: 20px; color: #94a3b8; margin-bottom: 4px;"></i>
+                  <span style="font-size: 10.5px; font-weight: 600; color: #64748b;">รูปก่อนซ่อม (Before)</span>
+                </div>
+              </div>
+              <!-- After -->
+              <div>
+                <input type="file" id="cm_cam_after" accept="image/*" capture="environment" style="display: none;" onchange="handleImageSelected(this, 'cm_after')" />
+                <div class="photo-box" id="box_cm_after" onclick="triggerCamera('cm_cam_after')">
+                  <i class="fa-solid fa-camera" style="font-size: 20px; color: #94a3b8; margin-bottom: 4px;"></i>
+                  <span style="font-size: 10.5px; font-weight: 600; color: #64748b;">รูปหลังซ่อม (After)</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        `;
+      }
+    }
+
+    function renderExpenses(data) {
+      const expensesCard = document.getElementById("woExpensesCard");
+      const listContainer = document.getElementById("expensesList");
+      const totalEl = document.getElementById("expensesTotalText");
+
+      const items = data.expenses || [];
+      if (items.length > 0) {
+        expensesCard.style.display = "block";
+        totalEl.textContent = `฿${(data.totalExpenses || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 })}`;
+
+        listContainer.innerHTML = items.map(item => `
+          <div style="display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px dashed #f1f5f9;">
+            <span>${item.item} (${item.qty} ชิ้น)</span>
+            <span style="font-weight: 600; color: var(--text-main);">฿${(item.cost * item.qty).toLocaleString()}</span>
+          </div>
+        `).join("");
+      } else {
+        expensesCard.style.display = "none";
+      }
+    }
+
+    /**
+     * Accordion Collapsible Logic
+     */
+    let allAccordionsExpanded = false;
+
+    function toggleAccordion(taskId) {
+      const body = document.getElementById(`body_${taskId}`);
+      const arrow = document.getElementById(`arrow_${taskId}`);
+      if (!body) return;
+
+      const isOpen = body.classList.contains("open");
+      if (isOpen) {
+        body.classList.remove("open");
+        if (arrow) arrow.style.transform = "rotate(0deg)";
+      } else {
+        body.classList.add("open");
+        if (arrow) arrow.style.transform = "rotate(180deg)";
+      }
+      updateToggleAllBtnState();
+    }
+
+    function toggleAllAccordions() {
+      allAccordionsExpanded = !allAccordionsExpanded;
+      const allBodies = document.querySelectorAll('.accordion-body');
+      const allArrows = document.querySelectorAll('.acc-arrow');
+      const btnText = document.getElementById("btnToggleAllText");
+
+      allBodies.forEach(body => {
+        if (allAccordionsExpanded) {
+          body.classList.add("open");
+        } else {
+          body.classList.remove("open");
+        }
+      });
+
+      allArrows.forEach(arrow => {
+        arrow.style.transform = allAccordionsExpanded ? "rotate(180deg)" : "rotate(0deg)";
+      });
+
+      if (btnText) {
+        btnText.textContent = allAccordionsExpanded ? "พับทั้งหมด" : "เปิดทั้งหมด";
+      }
+    }
+
+    function updateToggleAllBtnState() {
+      const allBodies = document.querySelectorAll('.accordion-body');
+      if (allBodies.length === 0) return;
+      const openBodies = document.querySelectorAll('.accordion-body.open');
+      const btnText = document.getElementById("btnToggleAllText");
+      if (!btnText) return;
+
+      if (openBodies.length === allBodies.length) {
+        allAccordionsExpanded = true;
+        btnText.textContent = "พับทั้งหมด";
+      } else if (openBodies.length === 0) {
+        allAccordionsExpanded = false;
+        btnText.textContent = "เปิดทั้งหมด";
+      }
+    }
+
+    /**
+     * =========================================================
+     * CAMERA CAPTURE & CANVAS COMPRESSION
+     * =========================================================
+     */
+    function triggerCamera(inputId) {
+      const input = document.getElementById(inputId);
+      if (input) input.click();
+    }
+
+    async function handleImageSelected(inputEl, photoKey) {
+      if (!inputEl.files || !inputEl.files[0]) return;
+      const file = inputEl.files[0];
+
+      LiffAuth.showLoading("กำลังย่อขนาดรูปภาพ...", "กำลังประมวลผลผ่าน Canvas");
+      try {
+        // ย่อรูปภาพผ่าน Canvas (Max 1280px, 75% quality)
+        const compressedBase64 = await CmmsApi.compressImage(file, 1280, 1280, 0.75);
+        taskPhotos[photoKey] = compressedBase64;
+
+        // แสดงผล Preview
+        renderPhotoPreview(photoKey, compressedBase64);
+      } catch (e) {
+        console.error("Image Compress Error:", e);
+        alert("ไม่สามารถประมวลผลรูปภาพได้");
+      } finally {
+        LiffAuth.hideLoading();
+      }
+    }
+
+    function renderPhotoPreview(photoKey, base64Url) {
+      const box = document.getElementById(`box_${photoKey}`);
+      if (!box) return;
+
+      box.classList.add("has-image");
+      box.innerHTML = `
+        <img src="${base64Url}" class="photo-preview-img" alt="Captured Photo" />
+        <button type="button" class="photo-remove-btn" onclick="event.stopPropagation(); removePhoto('${photoKey}')" title="ลบรูป">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      `;
+    }
+
+    function removePhoto(photoKey) {
+      delete taskPhotos[photoKey];
+      const box = document.getElementById(`box_${photoKey}`);
+      if (!box) return;
+
+      box.classList.remove("has-image");
+      const isBefore = photoKey.includes("before");
+      box.innerHTML = `
+        <i class="fa-solid fa-camera" style="font-size: 20px; color: #94a3b8; margin-bottom: 4px;"></i>
+        <span style="font-size: 10.5px; font-weight: 600; color: #64748b;">${isBefore ? 'รูปก่อนทำ (Before)' : 'รูปหลังทำ (After)'}</span>
+      `;
+    }
+
+    /**
+     * Helper Utilities for PM Form
+     */
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return "";
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function formatDateTimeLocal(val) {
+      if (!val) return "";
+      try {
+        const d = new Date(val);
+        if (isNaN(d.getTime())) return "";
+        const pad = n => String(n).padStart(2, '0');
+        const yyyy = d.getFullYear();
+        const mm = pad(d.getMonth() + 1);
+        const dd = pad(d.getDate());
+        const hh = pad(d.getHours());
+        const min = pad(d.getMinutes());
+        return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+      } catch (e) {
+        return "";
+      }
+    }
+
+    function calcWorkingTime(safeKey) {
+      const sd = document.getElementById(`sd_${safeKey}`)?.value;
+      const ed = document.getElementById(`ed_${safeKey}`)?.value;
+      const wt = document.getElementById(`wt_${safeKey}`);
+      if (!sd || !ed || !wt) return;
+      const diffMs = new Date(ed) - new Date(sd);
+      if (diffMs > 0) {
+        wt.value = (diffMs / (1000 * 60 * 60)).toFixed(2);
+      }
+    }
+
+    /**
+     * ดึงขั้นตอน Task List (PM Steps) มาแสดงในกล่องอ้างอิง
+     */
+    async function loadTaskStepsForPM(safeKey, taskNo, pmType) {
+      const container = document.getElementById(`taskStepsList_${safeKey}`);
+      if (!container) return;
+
+      try {
+        const data = await CmmsApi.getTaskListData(taskNo, pmType);
+        if (data && data.steps && data.steps.length > 0) {
+          container.innerHTML = data.steps.map(s => `
+            <div class="task-step-item">
+              <span class="task-step-num">${s.stepNo}</span>
+              <span class="task-step-text">${escapeHtml(s.stepName)}</span>
+            </div>
+          `).join('');
+        } else {
+          // Standard default inspection steps
+          const defaultSteps = [
+            { stepNo: 1, stepName: "ตรวจสอบสภาพทั่วไป เสียงผิดปกติ และการสั่นสะเทือนของอุปกรณ์" },
+            { stepNo: 2, stepName: "ทำความสะอาดตัวเรือน ขจัดคราบฝุ่น/น้ำมัน และตรวจเช็คจุดยึดแน่น" },
+            { stepNo: 3, stepName: "ตรวจเช็คระบบหล่อลื่น ขั้วต่อสายไฟ และอุปกรณ์ป้องกัน" },
+            { stepNo: 4, stepName: "ทดสอบการทำงานและวัดค่าพารามิเตอร์หลังการบำรุงรักษา" }
+          ];
+          container.innerHTML = defaultSteps.map(s => `
+            <div class="task-step-item">
+              <span class="task-step-num">${s.stepNo}</span>
+              <span class="task-step-text">${escapeHtml(s.stepName)}</span>
+            </div>
+          `).join('');
+        }
+      } catch (err) {
+        console.warn("loadTaskStepsForPM error:", err);
+        const defaultSteps = [
+          { stepNo: 1, stepName: "ตรวจสอบสภาพทั่วไปและจุดยึดแน่นของอุปกรณ์" },
+          { stepNo: 2, stepName: "ทำความสะอาดและตรวจสอบระบบหล่อลื่น" },
+          { stepNo: 3, stepName: "ทดสอบการเดินเครื่องและบันทึกค่าพารามิเตอร์" }
+        ];
+        container.innerHTML = defaultSteps.map(s => `
+          <div class="task-step-item">
+            <span class="task-step-num">${s.stepNo}</span>
+            <span class="task-step-text">${escapeHtml(s.stepName)}</span>
+          </div>
+        `).join('');
+      }
+    }
+
+    /**
+     * =========================================================
+     * SAVE SUBTASK (PM ACTION)
+     * =========================================================
+     */
+    async function saveSubTask(safeKey, taskNo, equipmentCode) {
+      const rc = document.getElementById(`rc_${safeKey}`)?.value || "";
+      const at = document.getElementById(`at_${safeKey}`)?.value || "";
+      const sd = document.getElementById(`sd_${safeKey}`)?.value || "";
+      const ed = document.getElementById(`ed_${safeKey}`)?.value || "";
+      const wt = document.getElementById(`wt_${safeKey}`)?.value || "";
+      const dt = document.getElementById(`dt_${safeKey}`)?.value || "";
+      const mv = document.getElementById(`mv_${safeKey}`)?.value || "";
+      const photoBefore = taskPhotos[`before_${safeKey}`] || "";
+      const photoAfter = taskPhotos[`after_${safeKey}`] || "";
+
+      LiffAuth.showLoading("กำลังบันทึกข้อมูล...", taskNo || equipmentCode);
+      try {
+        const payload = {
+          woNo: currentActiveWO,
+          task_no: taskNo,
+          equipment_code: equipmentCode,
+          rootCause: rc,
+          actionTaken: at,
+          startDate: sd,
+          endDate: ed,
+          workingTime: wt,
+          downTime: dt,
+          measuredValue: mv,
+          photoBefore: photoBefore,
+          photoAfter: photoAfter,
+          updatedBy: activeUser ? (activeUser.displayName || activeUser.name) : "Technician"
+        };
+
+        const res = await CmmsApi.saveSubTask(payload);
+
+        // Update UI Indicator
+        const card = document.getElementById(`accCard_${safeKey}`);
+        const badge = document.getElementById(`badgeTask_${safeKey}`);
+        if (card) card.classList.add("completed-task");
+        if (badge) {
+          badge.className = "badge badge-completed";
+          badge.innerHTML = '<i class="fa-solid fa-check"></i> เสร็จสิ้น';
+        }
+
+        alert(`บันทึกผลการปฏิบัติงาน ${taskNo || equipmentCode} เรียบร้อยแล้ว!`);
+      } catch (e) {
+        console.error("saveSubTask Error:", e);
+        alert("เกิดข้อผิดพลาดในการบันทึก Task ย่อย");
+      } finally {
+        LiffAuth.hideLoading();
+      }
+    }
+
+    /**
+     * =========================================================
+     * CLOSE ENTIRE WORK ORDER
+     * =========================================================
+     */
+    function openCloseModal() {
+      const modal = document.getElementById("closeWOModal");
+      const woText = document.getElementById("modalWoNoText");
+      if (woText) woText.textContent = currentActiveWO || "-";
+      if (modal) modal.classList.add("active");
+    }
+
+    function closeCloseModal() {
+      const modal = document.getElementById("closeWOModal");
+      if (modal) modal.classList.remove("active");
+    }
+
+    async function handleFinalCloseSubmit(e) {
+      e.preventDefault();
+      closeCloseModal();
+
+      LiffAuth.showLoading("กำลังบันทึกปิดใบงาน...", currentActiveWO);
+
+      try {
+        const wo = (currentDrawerData && currentDrawerData.wo) || {};
+        const targetWO = groupedWorkOrders.find(w => w.woNo === currentActiveWO);
+        const isPM = (
+          (wo.woType || "").toUpperCase().includes("PM") ||
+          (wo.request_type || "").toUpperCase().includes("PM") ||
+          (wo.wo_type || "").toUpperCase().includes("PM") ||
+          (wo.workType || "").toUpperCase().includes("PM") ||
+          (targetWO && (targetWO.woType || "").toUpperCase().includes("PM")) ||
+          (currentActiveWO || "").toUpperCase().includes("PM") ||
+          (currentDrawerData && currentDrawerData.components && currentDrawerData.components.length > 0)
+        );
+        const technicianNote = document.getElementById("modalTechnicianNote")?.value || "";
+
+        let closingData = {
+          woNo: currentActiveWO,
+          status: "Completed",
+          closedBy: activeUser ? activeUser.displayName : "Technician",
+          technicianNotes: technicianNote
+        };
+
+        if (!isPM) {
+          closingData.rootCause = document.getElementById("cmRootCause")?.value || "";
+          closingData.actionTaken = document.getElementById("cmActionTaken")?.value || "";
+          closingData.workTimeMinutes = document.getElementById("cmWorkTime")?.value || 30;
+          closingData.downtimeMinutes = document.getElementById("cmDowntime")?.value || 0;
+          closingData.spareParts = document.getElementById("cmSpareParts")?.value || "";
+          closingData.photoBefore = taskPhotos["cm_before"] || "";
+          closingData.photoAfter = taskPhotos["cm_after"] || "";
+        }
+
+        const res = await CmmsApi.closeWorkOrder(closingData);
+
+        alert(`ปิดใบงาน ${currentActiveWO} เรียบร้อยแล้ว! ขอบคุณสำหรับการปฏิบัติงาน`);
+
+        // อัปเดตข้อมูลใน local state
+        if (targetWO) targetWO.status = "Completed";
+
+        renderStatsAndBadges();
+        goBackToList();
+        renderWorkOrdersList();
+      } catch (e) {
+        console.error("handleFinalCloseSubmit Error:", e);
+        alert("เกิดข้อผิดพลาดในการบันทึกปิดใบงาน กรุณาลองใหม่อีกครั้ง");
+      } finally {
+        LiffAuth.hideLoading();
+      }
+    }
+
+    async function refreshTechnicianData() {
+      LiffAuth.showLoading("กำลังอัปเดตข้อมูล...", "กรุณารอสักครู่");
+      await fetchTechnicianWork();
+      if (currentActiveWO) {
+        await openWorkOrderDetail(currentActiveWO);
+      }
+      LiffAuth.hideLoading();
+    }
+  </script>
+</body>
+
+</html>

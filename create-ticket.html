@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AUT CMMS - แจ้งซ่อม</title>
+
+  <!-- Central Stylesheet -->
+  <link rel="stylesheet" href="css/style.css" />
+
+  <!-- FontAwesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" />
+
+  <!-- LINE LIFF SDK -->
+  <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+  <style>
+    .type-selector {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      background: #f1f5f9;
+      padding: 4px;
+      border-radius: var(--radius-md);
+    }
+
+    .type-option {
+      cursor: pointer;
+      position: relative;
+    }
+
+    .type-option input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .type-card {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 10px;
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      transition: all 0.2s;
+    }
+
+    .type-option input:checked + .type-card.type-cm {
+      background: white;
+      color: var(--primary);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .type-option input:checked + .type-card.type-bm {
+      background: white;
+      color: var(--danger);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .scanner-btn {
+      position: absolute;
+      right: 6px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 32px;
+      height: 32px;
+      border-radius: var(--radius-sm);
+      border: none;
+      background: #e2e8f0;
+      color: #475569;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .scanner-btn:active {
+      background: #cbd5e1;
+    }
+
+    .success-card {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      text-align: center;
+      margin-bottom: 16px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Loading Overlay -->
+  <div id="loadingOverlay">
+    <div class="loading-icon-wrapper">
+      <div class="loading-spinner"></div>
+      <i class="fa-solid fa-paper-plane loading-tool-icon"></i>
+    </div>
+    <div id="loadingText">กำลังเตรียมข้อมูล...</div>
+    <div id="loadingSubText">กรุณารอสักครู่</div>
+    <div class="loading-progress">
+      <div class="loading-progress-bar"></div>
+    </div>
+  </div>
+
+  <!-- App Container -->
+  <div class="app-container">
+
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-brand">
+        <a href="index.html" class="header-icon-btn" style="text-decoration: none;" title="กลับ">
+          <i class="fa-solid fa-arrow-left"></i>
+        </a>
+        <div>
+          <h1 class="header-title">แจ้งซ่อม</h1>
+          <p class="header-subtitle">แบบฟอร์มบันทึกแจ้งซ่อมเครื่องจักร</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <a href="tracking.html" class="header-icon-btn" title="ติดตามงาน">
+          <i class="fa-solid fa-list-check"></i>
+        </a>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content fade-in">
+
+      <!-- Success Result Box (Hidden by default) -->
+      <div id="successResult" style="display: none;" class="success-card">
+        <div style="width: 52px; height: 52px; border-radius: 50%; background: #dcfce7; color: #16a34a; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; font-size: 24px;">
+          <i class="fa-solid fa-check"></i>
+        </div>
+        <h2 style="font-size: 16px; font-weight: 700; color: #15803d; margin-bottom: 4px;">แจ้งซ่อมสำเร็จ</h2>
+        <p id="successMessage" style="font-size: 12px; color: #166534;">ระบบได้บันทึกข้อมูลเรียบร้อยแล้ว</p>
+        
+        <div style="background: white; border: 1px solid #bbf7d0; border-radius: var(--radius-md); padding: 12px; margin: 16px 0;">
+          <div style="font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Ticket Number</div>
+          <div id="ticketNo" style="font-size: 22px; font-weight: 800; color: var(--primary); margin-top: 2px;">-</div>
+        </div>
+
+        <div style="display: flex; gap: 8px;">
+          <button onclick="resetForNewTicket()" class="btn-primary" style="flex: 1; font-size: 12px; padding: 10px; background: #e2e8f0; color: #334155;">
+            <i class="fa-solid fa-plus"></i> แจ้งงานเพิ่ม
+          </button>
+          <a href="tracking.html" class="btn-primary" style="flex: 1; font-size: 12px; padding: 10px; text-decoration: none;">
+            <i class="fa-solid fa-list-check"></i> ติดตามงาน
+          </a>
+        </div>
+      </div>
+
+      <!-- Request Form Card -->
+      <div id="formCard" class="card">
+        <form id="requestForm" onsubmit="handleRequestSubmit(event)">
+
+          <!-- Asset Code -->
+          <div class="form-group">
+            <label class="form-label">
+              Asset Code (รหัสเครื่องจักร) <span class="required">*</span>
+            </label>
+            <div style="position: relative;">
+              <input
+                type="text"
+                id="reqAsset"
+                required
+                placeholder="เช่น FA-CR001 หรือสแกน QR"
+                list="req-asset-list"
+                oninput="onAssetInput(this.value)"
+                class="form-input"
+                style="padding-right: 42px;"
+              />
+              <datalist id="req-asset-list"></datalist>
+              <button type="button" onclick="scanQR('reqAsset')" class="scanner-btn" title="สแกน QR Code">
+                <i class="fa-solid fa-qrcode"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Component Code -->
+          <div class="form-group">
+            <label class="form-label">
+              Component Code (รหัสชิ้นส่วน)
+            </label>
+            <div style="position: relative;">
+              <input
+                type="text"
+                id="reqComp"
+                placeholder="เช่น FA-CR001-MT01"
+                list="req-component-list"
+                class="form-input"
+                style="padding-right: 42px;"
+              />
+              <datalist id="req-component-list"></datalist>
+              <button type="button" onclick="scanQR('reqComp')" class="scanner-btn" title="สแกน QR Code">
+                <i class="fa-solid fa-qrcode"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Department & Location Grid -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px;">
+            <div>
+              <label class="form-label">แผนก (Department)</label>
+              <input type="text" id="reqDept" placeholder="เช่น PP, MT" list="req-dept-list" class="form-input" />
+              <datalist id="req-dept-list"></datalist>
+            </div>
+            <div>
+              <label class="form-label">สถานที่ (Location)</label>
+              <input type="text" id="reqLoc" placeholder="เช่น Factory 1" list="req-loc-list" class="form-input" />
+              <datalist id="req-loc-list"></datalist>
+            </div>
+          </div>
+
+          <!-- Type (CM / BM) -->
+          <div class="form-group">
+            <label class="form-label">
+              ประเภทงานซ่อม <span class="required">*</span>
+            </label>
+            <div class="type-selector">
+              <label class="type-option">
+                <input type="radio" name="reqType" id="reqTypeCM" value="CM" checked />
+                <div class="type-card type-cm">
+                  <i class="fa-solid fa-wrench"></i> แจ้งซ่อมทั่วไป (CM)
+                </div>
+              </label>
+
+              <label class="type-option">
+                <input type="radio" name="reqType" id="reqTypeBM" value="BM" />
+                <div class="type-card type-bm">
+                  <i class="fa-solid fa-triangle-exclamation"></i> เครื่องหยุด (BM)
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- Priority (Hidden default) -->
+          <input type="hidden" id="reqPriority" value="Normal" />
+
+          <!-- Description -->
+          <div class="form-group">
+            <label class="form-label">
+              รายละเอียดปัญหา / อาการเสีย <span class="required">*</span>
+            </label>
+            <textarea
+              id="reqDesc"
+              required
+              rows="3"
+              placeholder="ระบุอาการเสีย หรือปัญหาที่พบ..."
+              class="form-textarea"
+            ></textarea>
+          </div>
+
+          <!-- Image Upload -->
+          <div class="form-group">
+            <label class="form-label">
+              <i class="fa-solid fa-camera" style="margin-right: 4px;"></i> รูปภาพประกอบ (ถ้ามี)
+            </label>
+            <input
+              type="file"
+              id="reqImageFile"
+              accept="image/*"
+              capture="environment"
+              class="form-input"
+              style="padding: 7px 10px; font-size: 11.5px; background: #f8fafc;"
+            />
+          </div>
+
+          <!-- Submit Button -->
+          <button type="submit" id="submitBtn" class="btn-primary" style="margin-top: 8px;">
+            <i class="fa-solid fa-paper-plane"></i> ส่งแจ้งซ่อม
+          </button>
+        </form>
+      </div>
+
+    </main>
+
+    <!-- Bottom Nav -->
+    <nav class="bottom-nav">
+      <a href="index.html" class="nav-item">
+        <i class="fa-solid fa-house"></i>
+        <span>หน้าหลัก</span>
+      </a>
+
+      <a href="tracking.html" class="nav-item">
+        <i class="fa-solid fa-list-check"></i>
+        <span>ติดตามงาน</span>
+      </a>
+
+      <a href="create-ticket.html" class="nav-item-highlight active" title="แจ้งซ่อม">
+        <i class="fa-solid fa-plus"></i>
+      </a>
+
+      <a href="tracking.html?filter=history" class="nav-item">
+        <i class="fa-solid fa-clock-rotate-left"></i>
+        <span>ประวัติ</span>
+      </a>
+
+      <a href="profile.html" class="nav-item">
+        <i class="fa-solid fa-user"></i>
+        <span>โปรไฟล์</span>
+      </a>
+    </nav>
+
+  </div>
+
+  <!-- Shared Scripts -->
+  <script src="js/liff-auth.js"></script>
+  <script src="js/api.js"></script>
+
+  <script>
+    let rawAssets = [];
+    let rawComponents = [];
+    let rawDepartments = [];
+    let rawLocations = [];
+    let activeUser = null;
+
+    window.addEventListener("load", async () => {
+      LiffAuth.showLoading("กำลังเชื่อมต่อระบบ...", "กรุณารอสักครู่");
+
+      try {
+        activeUser = await LiffAuth.init({
+          requiredAuth: false,
+          onReady: (user) => {
+            console.log("Ready with user:", user);
+          }
+        });
+
+        await loadMachineData();
+        checkUrlParams();
+      } catch (err) {
+        console.error("Init Error:", err);
+      } finally {
+        LiffAuth.hideLoading();
+      }
+    });
+
+    function checkUrlParams() {
+      const params = new URLSearchParams(window.location.search);
+      const assetParam = params.get("asset");
+      if (assetParam) {
+        const assetInput = document.getElementById("reqAsset");
+        if (assetInput) {
+          assetInput.value = assetParam;
+          onAssetInput(assetParam);
+        }
+      }
+    }
+
+    async function loadMachineData() {
+      try {
+        const json = await CmmsApi.getMachines();
+
+        if (json && json.status === "success") {
+          rawAssets = json.data?.assets || [];
+          rawComponents = json.data?.components || [];
+          rawDepartments = json.data?.departments || [];
+          rawLocations = json.data?.locations || [];
+
+          renderAssetDatalist();
+          renderDepartmentDatalist();
+          renderLocationDatalist();
+        }
+      } catch (e) {
+        console.warn("Could not load machine lists:", e);
+      }
+    }
+
+    function renderAssetDatalist() {
+      const assetList = document.getElementById("req-asset-list");
+      if (!assetList) return;
+      assetList.innerHTML = "";
+
+      rawAssets.forEach(item => {
+        const opt = document.createElement("option");
+        opt.value = item.assetCode;
+        opt.label = item.machineName ? `${item.assetCode} - ${item.machineName}` : item.assetCode;
+        assetList.appendChild(opt);
+      });
+    }
+
+    function renderDepartmentDatalist() {
+      const deptList = document.getElementById("req-dept-list");
+      if (!deptList) return;
+      deptList.innerHTML = "";
+
+      rawDepartments.forEach(item => {
+        const opt = document.createElement("option");
+        const deptCode = item.Dept || item.deptCode || item.department || "";
+        const deptName = item.Name || item.deptName || "";
+        opt.value = deptCode;
+        opt.label = deptName ? `${deptCode} - ${deptName}` : deptCode;
+        deptList.appendChild(opt);
+      });
+    }
+
+    function renderLocationDatalist() {
+      const locList = document.getElementById("req-loc-list");
+      if (!locList) return;
+      locList.innerHTML = "";
+
+      rawLocations.forEach(item => {
+        const opt = document.createElement("option");
+        const locDesc = item.Description || item.Location || item.name || "";
+        opt.value = locDesc;
+        locList.appendChild(opt);
+      });
+    }
+
+    function onAssetInput(val) {
+      const compList = document.getElementById("req-component-list");
+      if (compList) {
+        compList.innerHTML = "";
+        const filtered = rawComponents.filter(
+          c => c.assetCode === val || (c.compCode && c.compCode.startsWith(val))
+        );
+        filtered.forEach(item => {
+          const opt = document.createElement("option");
+          opt.value = item.compCode;
+          opt.label = item.compName ? `${item.compCode} - ${item.compName}` : item.compCode;
+          compList.appendChild(opt);
+        });
+      }
+
+      const matched = rawAssets.find(a => a.assetCode === val);
+      if (matched) {
+        const deptInput = document.getElementById("reqDept");
+        const locInput = document.getElementById("reqLoc");
+
+        if (deptInput && (matched.department || matched.dept || matched.Dept)) {
+          deptInput.value = matched.department || matched.dept || matched.Dept;
+        }
+        if (locInput && (matched.location || matched.Location)) {
+          locInput.value = matched.location || matched.Location;
+        }
+      }
+    }
+
+    async function scanQR(targetInputId) {
+      try {
+        const scanned = await LiffAuth.scanQRCode();
+        if (scanned) {
+          const input = document.getElementById(targetInputId);
+          if (input) {
+            input.value = scanned;
+            if (targetInputId === "reqAsset") {
+              onAssetInput(scanned);
+            }
+          }
+        }
+      } catch (err) {
+        alert(err.message || "การสแกน QR Code รองรับเฉพาะบนแอปพลิเคชัน LINE บนมือถือเท่านั้น");
+      }
+    }
+
+    async function handleRequestSubmit(e) {
+      e.preventDefault();
+
+      const btn = document.getElementById("submitBtn");
+      btn.disabled = true;
+      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> กำลังส่งข้อมูล...`;
+
+      LiffAuth.showLoading("กำลังบันทึกข้อมูลแจ้งซ่อม...", "ระบบกำลังสร้างเลขที่ Ticket");
+
+      try {
+        const file = document.getElementById("reqImageFile").files[0];
+        let imageBase64 = "";
+        if (file) {
+          LiffAuth.showLoading("กำลังเตรียมรูปภาพ...", "กรุณารอสักครู่");
+          imageBase64 = await CmmsApi.fileToBase64(file);
+        }
+
+        const selectedType = document.querySelector('input[name="reqType"]:checked').value;
+        const user = LiffAuth.getUser() || {};
+
+        const payload = {
+          userId: user.userId || "",
+          displayName: user.displayName || "ผู้ใช้งาน",
+          pictureUrl: user.pictureUrl || "",
+          assetCode: document.getElementById("reqAsset").value.trim(),
+          componentCode: document.getElementById("reqComp").value.trim(),
+          department: document.getElementById("reqDept").value.trim(),
+          location: document.getElementById("reqLoc").value.trim(),
+          reqType: selectedType,
+          priority: document.getElementById("reqPriority").value,
+          symptom: document.getElementById("reqDesc").value.trim(),
+          image: imageBase64
+        };
+
+        const resData = await CmmsApi.createRepairRequest(payload);
+
+        LiffAuth.hideLoading();
+
+        if (resData && resData.status === "success") {
+          const ticketNo = resData.ticketNo || "-";
+          document.getElementById("ticketNo").textContent = ticketNo;
+          document.getElementById("successMessage").textContent = resData.message || "ระบบบันทึกข้อมูลเรียบร้อยแล้ว";
+          document.getElementById("formCard").style.display = "none";
+          document.getElementById("successResult").style.display = "block";
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        } else {
+          alert("ไม่สามารถบันทึกได้:\n" + (resData?.message || "เกิดข้อผิดพลาดจากระบบ"));
+          resetSubmitButton();
+        }
+
+      } catch (err) {
+        LiffAuth.hideLoading();
+        console.error("Submit Error:", err);
+        alert("เกิดข้อผิดพลาดในการเชื่อมต่อ:\n" + (err.message || "ไม่สามารถเชื่อมต่อระบบได้"));
+        resetSubmitButton();
+      }
+    }
+
+    function resetSubmitButton() {
+      const btn = document.getElementById("submitBtn");
+      if (!btn) return;
+      btn.disabled = false;
+      btn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> ส่งแจ้งซ่อม`;
+    }
+
+    function resetForNewTicket() {
+      document.getElementById("requestForm").reset();
+      document.getElementById("reqTypeCM").checked = true;
+      document.getElementById("req-component-list").innerHTML = "";
+      document.getElementById("formCard").style.display = "block";
+      document.getElementById("successResult").style.display = "none";
+      resetSubmitButton();
+    }
+  </script>
+</body>
+</html>

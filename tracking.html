@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AUT CMMS - ติดตามสถานะงานซ่อม</title>
+
+  <!-- Central Stylesheet -->
+  <link rel="stylesheet" href="css/style.css" />
+
+  <!-- FontAwesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" />
+
+  <!-- LINE LIFF SDK -->
+  <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+  <style>
+    .filter-scroll {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding-bottom: 8px;
+      margin-bottom: 12px;
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    .filter-scroll::-webkit-scrollbar {
+      display: none;
+    }
+
+    .filter-pill {
+      white-space: nowrap;
+      padding: 6px 14px;
+      border-radius: var(--radius-full);
+      font-size: 11px;
+      font-weight: 600;
+      background: white;
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .filter-pill.active {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+      box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+    }
+
+    .search-box {
+      position: relative;
+      margin-bottom: 12px;
+    }
+
+    .search-box input {
+      width: 100%;
+      padding: 10px 14px 10px 36px;
+      background: white;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      font-size: 12.5px;
+      outline: none;
+      font-family: inherit;
+    }
+
+    .search-box input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .search-box i {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-sub);
+      font-size: 13px;
+    }
+
+    /* Ticket Detail Modal */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.25s ease;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .modal-content {
+      background: white;
+      width: 100%;
+      max-width: 480px;
+      max-height: 85vh;
+      border-radius: 20px 20px 0 0;
+      padding: 20px;
+      overflow-y: auto;
+      transform: translateY(100%);
+      transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+    }
+
+    .modal-overlay.active .modal-content {
+      transform: translateY(0);
+    }
+
+    .modal-drag-handle {
+      width: 36px;
+      height: 4px;
+      background: #cbd5e1;
+      border-radius: 2px;
+      margin: 0 auto 16px;
+    }
+
+    /* Timeline Stepper */
+    .timeline {
+      position: relative;
+      padding-left: 24px;
+      margin: 16px 0;
+    }
+
+    .timeline::before {
+      content: "";
+      position: absolute;
+      left: 7px;
+      top: 4px;
+      bottom: 4px;
+      width: 2px;
+      background: #e2e8f0;
+    }
+
+    .timeline-step {
+      position: relative;
+      margin-bottom: 16px;
+    }
+
+    .timeline-step:last-child {
+      margin-bottom: 0;
+    }
+
+    .timeline-step-dot {
+      position: absolute;
+      left: -24px;
+      top: 2px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: white;
+      border: 3px solid #cbd5e1;
+    }
+
+    .timeline-step.completed .timeline-step-dot {
+      border-color: var(--success);
+      background: var(--success);
+    }
+
+    .timeline-step.current .timeline-step-dot {
+      border-color: var(--primary);
+      background: white;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Loading Overlay -->
+  <div id="loadingOverlay">
+    <div class="loading-icon-wrapper">
+      <div class="loading-spinner"></div>
+      <i class="fa-solid fa-list-check loading-tool-icon"></i>
+    </div>
+    <div id="loadingText">กำลังโหลดรายการแจ้งซ่อม...</div>
+    <div id="loadingSubText">กรุณารอสักครู่</div>
+    <div class="loading-progress">
+      <div class="loading-progress-bar"></div>
+    </div>
+  </div>
+
+  <!-- App Container -->
+  <div class="app-container">
+
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-brand">
+        <a href="index.html" class="header-icon-btn" style="text-decoration: none;" title="กลับ">
+          <i class="fa-solid fa-arrow-left"></i>
+        </a>
+        <div>
+          <h1 class="header-title">ติดตามงานซ่อม</h1>
+          <p class="header-subtitle">ตรวจสอบสถานะและประวัติงาน</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="header-icon-btn" onclick="fetchTickets(true)" title="รีเฟรช">
+          <i class="fa-solid fa-rotate-right"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="main-content fade-in">
+
+      <!-- Search Box -->
+      <div class="search-box">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input
+          type="text"
+          id="searchInput"
+          placeholder="ค้นหา Ticket No., รหัสเครื่องจักร, อาการเสีย..."
+          oninput="handleSearch(this.value)"
+        />
+      </div>
+
+      <!-- Filter Pills -->
+      <div class="filter-scroll">
+        <button class="filter-pill active" onclick="setFilter('all', this)">
+          ทั้งหมด <span id="countAll" style="opacity: 0.8;">(0)</span>
+        </button>
+        <button class="filter-pill" onclick="setFilter('pending', this)">
+          รอดำเนินการ <span id="countPending" style="opacity: 0.8;">(0)</span>
+        </button>
+        <button class="filter-pill" onclick="setFilter('progress', this)">
+          กำลังซ่อม <span id="countProgress" style="opacity: 0.8;">(0)</span>
+        </button>
+        <button class="filter-pill" onclick="setFilter('waiting', this)">
+          รออะไหล่ <span id="countWaiting" style="opacity: 0.8;">(0)</span>
+        </button>
+        <button class="filter-pill" onclick="setFilter('completed', this)">
+          เสร็จสิ้น <span id="countCompleted" style="opacity: 0.8;">(0)</span>
+        </button>
+        <button class="filter-pill" onclick="setFilter('rejected', this)">
+          ยกเลิก/ปฏิเสธ <span id="statReject" style="opacity: 0.8;">(0)</span>
+        </button>
+      </div>
+
+      <!-- Ticket Cards List -->
+      <div id="ticketsContainer">
+        <div class="empty-state">
+          <i class="fa-solid fa-spinner fa-spin"></i>
+          <p>กำลังโหลดข้อมูล...</p>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+      <a href="index.html" class="nav-item">
+        <i class="fa-solid fa-house"></i>
+        <span>หน้าหลัก</span>
+      </a>
+
+      <a href="tracking.html" class="nav-item active">
+        <i class="fa-solid fa-list-check"></i>
+        <span>ติดตามงาน</span>
+      </a>
+
+      <a href="create-ticket.html" class="nav-item-highlight" title="แจ้งซ่อม">
+        <i class="fa-solid fa-plus"></i>
+      </a>
+
+      <a href="tracking.html?filter=history" class="nav-item">
+        <i class="fa-solid fa-clock-rotate-left"></i>
+        <span>ประวัติ</span>
+      </a>
+
+      <a href="profile.html" class="nav-item">
+        <i class="fa-solid fa-user"></i>
+        <span>โปรไฟล์</span>
+      </a>
+    </nav>
+
+  </div>
+
+  <!-- Ticket Detail Modal -->
+  <div id="detailModal" class="modal-overlay" onclick="closeModalOnBackdrop(event)">
+    <div class="modal-content">
+      <div class="modal-drag-handle"></div>
+
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+        <div>
+          <span id="modalTicketNo" style="font-size: 18px; font-weight: 800; color: var(--primary);">#TICKET-000</span>
+          <div id="modalDate" style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">วันที่แจ้ง: -</div>
+        </div>
+        <span id="modalStatusBadge" class="badge badge-pending">รอดำเนินการ</span>
+      </div>
+
+      <div style="background: #f8fafc; border-radius: var(--radius-md); padding: 12px; margin-bottom: 14px; border: 1px solid var(--border-color);">
+        <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">ข้อมูลเครื่องจักร</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px;">
+          <div><strong style="color: var(--text-sub);">Asset:</strong> <span id="modalAsset" style="font-weight: 600;">-</span></div>
+          <div><strong style="color: var(--text-sub);">Component:</strong> <span id="modalComp" style="font-weight: 600;">-</span></div>
+          <div><strong style="color: var(--text-sub);">แผนก:</strong> <span id="modalDept">-</span></div>
+          <div><strong style="color: var(--text-sub);">สถานที่:</strong> <span id="modalLoc">-</span></div>
+        </div>
+      </div>
+
+      <div style="margin-bottom: 14px;">
+        <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); margin-bottom: 4px;">รายละเอียดปัญหา</div>
+        <div id="modalSymptom" style="font-size: 12.5px; line-height: 1.5; color: var(--text-main); background: white; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 10px;">-</div>
+      </div>
+
+      <!-- Image Preview -->
+      <div id="modalImageContainer" style="display: none; margin-bottom: 14px;">
+        <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); margin-bottom: 4px;">รูปภาพประกอบ</div>
+        <img id="modalImage" src="" alt="Ticket Image" style="width: 100%; max-height: 220px; object-fit: contain; background: #000; border-radius: var(--radius-md);" />
+      </div>
+
+      <!-- Status Timeline -->
+      <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); margin-bottom: 8px;">ลำดับขั้นตอนการดำเนินงาน</div>
+      <div class="timeline">
+        <div id="step1" class="timeline-step completed">
+          <div class="timeline-step-dot"></div>
+          <div style="font-size: 12px; font-weight: 600;">แจ้งซ่อมสำเร็จ</div>
+          <div style="font-size: 10.5px; color: var(--text-muted);">ระบบบันทึกคำขอแจ้งซ่อมเข้าระบบ</div>
+        </div>
+        <div id="step2" class="timeline-step">
+          <div class="timeline-step-dot"></div>
+          <div style="font-size: 12px; font-weight: 600;">ทีมช่างรับเรื่อง / ตรวจสอบ</div>
+          <div style="font-size: 10.5px; color: var(--text-muted);">กำลังวางแผนและมอบหมายช่างผู้รับผิดชอบ</div>
+        </div>
+        <div id="step3" class="timeline-step">
+          <div class="timeline-step-dot"></div>
+          <div style="font-size: 12px; font-weight: 600;">กำลังดำเนินการซ่อม / เปลี่ยนอะไหล่</div>
+          <div style="font-size: 10.5px; color: var(--text-muted);">ช่างเข้าดำเนินการแก้ไขหน้างาน</div>
+        </div>
+        <div id="step4" class="timeline-step">
+          <div class="timeline-step-dot"></div>
+          <div style="font-size: 12px; font-weight: 600;">เสร็จสิ้น / ทดสอบผ่าน</div>
+          <div style="font-size: 10.5px; color: var(--text-muted);">งานซ่อมเสร็จสมบูรณ์ พร้อมใช้งาน</div>
+        </div>
+      </div>
+
+      <button onclick="closeDetailModal()" class="btn-primary" style="margin-top: 12px; background: #e2e8f0; color: #334155;">
+        ปิดหน้าต่าง
+      </button>
+    </div>
+  </div>
+
+  <!-- Shared Scripts -->
+  <script src="js/liff-auth.js"></script>
+  <script src="js/api.js"></script>
+
+  <script>
+    let allTickets = [];
+    let currentFilter = "all";
+    let activeUser = null;
+
+    window.addEventListener("load", async () => {
+      LiffAuth.showLoading("กำลังโหลดรายการ...", "กรุณารอสักครู่");
+
+      try {
+        activeUser = await LiffAuth.init({
+          requiredAuth: false,
+          onReady: (user) => {
+            console.log("Tracking loaded with user:", user);
+          }
+        });
+
+        await fetchTickets();
+        handleUrlParams();
+      } catch (err) {
+        console.error("Init Error:", err);
+      } finally {
+        LiffAuth.hideLoading();
+      }
+    });
+
+    function handleUrlParams() {
+      const params = new URLSearchParams(window.location.search);
+      const statusParam = params.get("status");
+      const ticketParam = params.get("ticket");
+
+      if (statusParam) {
+        const paramLower = statusParam.toLowerCase();
+        const matchingBtn = Array.from(document.querySelectorAll(".filter-pill")).find(btn => {
+          const onclickAttr = (btn.getAttribute("onclick") || "").toLowerCase();
+          return onclickAttr.includes(`'${paramLower}'`) ||
+            (paramLower === "reject" && onclickAttr.includes("rejected")) ||
+            (paramLower === "rejected" && onclickAttr.includes("reject"));
+        });
+        if (matchingBtn) {
+          setFilter(paramLower === "reject" ? "rejected" : statusParam, matchingBtn);
+        }
+      }
+
+      if (ticketParam) {
+        const found = allTickets.find(t =>
+          (t.ticketNo || t.id || "").toLowerCase() === ticketParam.toLowerCase()
+        );
+        if (found) {
+          openTicketDetail(found);
+        }
+      }
+    }
+
+    async function fetchTickets(isRefresh = false) {
+      if (isRefresh) {
+        LiffAuth.showLoading("กำลังอัปเดตรายการ...", "กรุณารอสักครู่");
+      }
+
+      const userId = activeUser ? activeUser.userId : "";
+
+      try {
+        const res = await CmmsApi.getTickets(userId);
+
+        if (res && res.status === "success" && Array.isArray(res.data)) {
+          allTickets = res.data;
+        } else if (Array.isArray(res)) {
+          allTickets = res;
+        } else {
+          allTickets = [];
+        }
+
+        updateFilterCounts();
+        renderTicketList();
+
+      } catch (e) {
+        console.warn("Could not fetch remote tickets:", e);
+        renderEmpty("ไม่สามารถเชื่อมต่อข้อมูลได้ กรุณาลองใหม่อีกครั้ง");
+      } finally {
+        if (isRefresh) LiffAuth.hideLoading();
+      }
+    }
+
+    function updateFilterCounts() {
+      let pending = 0, progress = 0, waiting = 0, completed = 0, reject = 0;
+
+      allTickets.forEach(t => {
+        const s = (t.status || t.Status || "").toLowerCase();
+        if (s.includes("wait") || s.includes("รออะไหล่")) waiting++;
+        else if (s.includes("prog") || s.includes("ซ่อม") || s.includes("กำลัง")) progress++;
+        else if (s.includes("comp") || s.includes("เสร็จ") || s.includes("เรียบร้อย")) completed++;
+        else if (s.includes("reject") || s.includes("ยกเลิก") || s.includes("ไม่อนุมัติ") || s.includes("ปฏิเสธ")) reject++;
+        else pending++;
+      });
+
+      document.getElementById("countAll").textContent = `(${allTickets.length})`;
+      document.getElementById("countPending").textContent = `(${pending})`;
+      document.getElementById("countProgress").textContent = `(${progress})`;
+      document.getElementById("countWaiting").textContent = `(${waiting})`;
+      document.getElementById("countCompleted").textContent = `(${completed})`;
+      if (document.getElementById("statReject")) {
+        document.getElementById("statReject").textContent = `(${reject})`;
+      }
+    }
+
+    function setFilter(status, btn) {
+      currentFilter = status;
+      document.querySelectorAll(".filter-pill").forEach(p => p.classList.remove("active"));
+      if (btn) btn.classList.add("active");
+      renderTicketList();
+    }
+
+    function handleSearch(query) {
+      renderTicketList(query.trim().toLowerCase());
+    }
+
+    function renderTicketList(searchQuery = "") {
+      const container = document.getElementById("ticketsContainer");
+      if (!container) return;
+
+      let filtered = allTickets.filter(t => {
+        const status = (t.status || t.Status || "").toLowerCase();
+
+        // 1. Status Filter
+        if (currentFilter === "pending") {
+          if (status.includes("prog") || status.includes("กำลัง") || status.includes("wait") || status.includes("รอ") || status.includes("เสร็จ") || status.includes("comp") || status.includes("reject") || status.includes("ยกเลิก") || status.includes("ไม่อนุมัติ") || status.includes("ปฏิเสธ")) return false;
+        } else if (currentFilter === "progress") {
+          if (!status.includes("prog") && !status.includes("กำลัง") && !status.includes("ซ่อม")) return false;
+        } else if (currentFilter === "waiting") {
+          if (!status.includes("wait") && !status.includes("รออะไหล่")) return false;
+        } else if (currentFilter === "completed") {
+          if (!status.includes("comp") && !status.includes("เสร็จ") && !status.includes("เรียบร้อย")) return false;
+        } else if (currentFilter === "rejected" || currentFilter === "reject") {
+          if (!status.includes("reject") && !status.includes("ยกเลิก") && !status.includes("ไม่อนุมัติ") && !status.includes("ปฏิเสธ")) return false;
+        }
+
+        // 2. Search Query Filter
+        if (searchQuery) {
+          const matchNo = (t.ticketNo || t.id || "").toLowerCase().includes(searchQuery);
+          const matchAsset = (t.assetCode || t.machineName || "").toLowerCase().includes(searchQuery);
+          const matchSymptom = (t.symptom || t.description || "").toLowerCase().includes(searchQuery);
+          const matchDept = (t.department || "").toLowerCase().includes(searchQuery);
+          return matchNo || matchAsset || matchSymptom || matchDept;
+        }
+
+        return true;
+      });
+
+      if (filtered.length === 0) {
+        renderEmpty(searchQuery ? "ไม่พบรายการที่ค้นหา" : "ไม่มีรายการในหมวดหมู่นี้");
+        return;
+      }
+
+      let html = "";
+      filtered.forEach((t, index) => {
+        const ticketNo = t.ticketNo || t.id || `TK-${index + 1}`;
+        const asset = t.assetCode || t.machineName || "เครื่องจักรทั่วไป";
+        const comp = t.componentCode ? ` - ${t.componentCode}` : "";
+        const symptom = t.symptom || t.description || "-";
+        const date = t.date || t.createdAt || "";
+        const status = t.status || t.Status || "รอดำเนินการ";
+        const reqType = t.reqType || "CM";
+
+        let badgeClass = "badge-pending";
+        const s = status.toLowerCase();
+        if (s.includes("กำลัง") || s.includes("prog")) badgeClass = "badge-progress";
+        else if (s.includes("รอ") && s.includes("อะไหล่")) badgeClass = "badge-waiting";
+        else if (s.includes("เสร็จ") || s.includes("comp")) badgeClass = "badge-completed";
+        else if (s.includes("ยกเลิก") || s.includes("reject")) badgeClass = "badge-rejected";
+
+        html += `
+          <div class="ticket-card" onclick='openTicketDetail(${JSON.stringify(t)})'>
+            <div class="ticket-header">
+              <span class="ticket-no">
+                <i class="fa-solid fa-ticket" style="margin-right: 4px; font-size: 11px;"></i>
+                #${ticketNo}
+              </span>
+              <span class="badge ${badgeClass}">${status}</span>
+            </div>
+            <div class="ticket-body">
+              <div style="font-weight: 600; color: var(--text-main); margin-bottom: 3px; display: flex; align-items: center; justify-content: space-between;">
+                <span>${asset}${comp}</span>
+                <span style="font-size: 10px; padding: 2px 6px; border-radius: 4px; background: ${reqType === 'BM' ? '#fee2e2; color: #dc2626;' : '#eff6ff; color: #2563eb;'} font-weight: 700;">
+                  ${reqType}
+                </span>
+              </div>
+              <div style="font-size: 12px; color: var(--text-muted); line-height: 1.4;">
+                ${symptom}
+              </div>
+            </div>
+            <div class="ticket-footer">
+              <span><i class="fa-regular fa-calendar" style="margin-right: 3px;"></i>${date}</span>
+              <span style="color: var(--primary); font-weight: 600;">ดูสถานะ <i class="fa-solid fa-chevron-right" style="font-size: 9px;"></i></span>
+            </div>
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+    }
+
+    function renderEmpty(text) {
+      const container = document.getElementById("ticketsContainer");
+      if (!container) return;
+      container.innerHTML = `
+        <div class="empty-state">
+          <i class="fa-solid fa-folder-open"></i>
+          <p style="font-size: 12.5px;">${text}</p>
+        </div>
+      `;
+    }
+
+    function openTicketDetail(ticket) {
+      if (!ticket) return;
+
+      document.getElementById("modalTicketNo").textContent = `#${ticket.ticketNo || ticket.id || "-"}`;
+      document.getElementById("modalDate").textContent = `วันที่แจ้ง: ${ticket.date || ticket.createdAt || "-"}`;
+      document.getElementById("modalAsset").textContent = ticket.assetCode || ticket.machineName || "-";
+      document.getElementById("modalComp").textContent = ticket.componentCode || "-";
+      document.getElementById("modalDept").textContent = ticket.department || "-";
+      document.getElementById("modalLoc").textContent = ticket.location || "-";
+      document.getElementById("modalSymptom").textContent = ticket.symptom || ticket.description || "-";
+
+      const status = ticket.status || ticket.Status || "รอดำเนินการ";
+      const statusBadge = document.getElementById("modalStatusBadge");
+      statusBadge.textContent = status;
+      const s = status.toLowerCase();
+      statusBadge.className = "badge " + (
+        s.includes("เสร็จ") || s.includes("comp") ? "badge-completed" :
+        s.includes("รอ") && s.includes("อะไหล่") ? "badge-waiting" :
+        s.includes("กำลัง") || s.includes("prog") || s.includes("ซ่อม") ? "badge-progress" :
+        s.includes("ยกเลิก") || s.includes("reject") || s.includes("ไม่อนุมัติ") || s.includes("ปฏิเสธ") ? "badge-rejected" : "badge-pending"
+      );
+
+      // Image
+      const imgContainer = document.getElementById("modalImageContainer");
+      const imgEl = document.getElementById("modalImage");
+      if (ticket.image || ticket.imageUrl) {
+        imgEl.src = ticket.image || ticket.imageUrl;
+        imgContainer.style.display = "block";
+      } else {
+        imgContainer.style.display = "none";
+      }
+
+      // Update Stepper
+      updateTimelineStepper(status);
+
+      document.getElementById("detailModal").classList.add("active");
+    }
+
+    function updateTimelineStepper(status) {
+      const s = status.toLowerCase();
+      const s1 = document.getElementById("step1");
+      const s2 = document.getElementById("step2");
+      const s3 = document.getElementById("step3");
+      const s4 = document.getElementById("step4");
+
+      s1.className = "timeline-step completed";
+      s2.className = "timeline-step";
+      s3.className = "timeline-step";
+      s4.className = "timeline-step";
+
+      if (s.includes("กำลัง") || s.includes("prog") || s.includes("ซ่อม") || s.includes("รอ")) {
+        s2.className = "timeline-step completed";
+        s3.className = "timeline-step current";
+      } else if (s.includes("เสร็จ") || s.includes("comp") || s.includes("เรียบร้อย")) {
+        s2.className = "timeline-step completed";
+        s3.className = "timeline-step completed";
+        s4.className = "timeline-step completed";
+      } else {
+        s2.className = "timeline-step current";
+      }
+    }
+
+    function closeDetailModal() {
+      document.getElementById("detailModal").classList.remove("active");
+    }
+
+    function closeModalOnBackdrop(e) {
+      if (e.target.id === "detailModal") {
+        closeDetailModal();
+      }
+    }
+  </script>
+</body>
+</html>

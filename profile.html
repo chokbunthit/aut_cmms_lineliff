@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AUT CMMS - ข้อมูลส่วนตัว</title>
+
+  <!-- Central Stylesheet -->
+  <link rel="stylesheet" href="css/style.css" />
+
+  <!-- FontAwesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" />
+
+  <!-- LINE LIFF SDK -->
+  <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+  <style>
+    .profile-hero {
+      text-align: center;
+      padding: 22px 16px;
+      background: white;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-color);
+      margin-bottom: 14px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .avatar-wrapper {
+      position: relative;
+      display: inline-block;
+      margin-bottom: 10px;
+    }
+
+    .avatar-img {
+      width: 72px;
+      height: 72px;
+      border-radius: var(--radius-full);
+      border: 3px solid var(--primary);
+      object-fit: cover;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+    }
+
+    .line-badge {
+      position: absolute;
+      bottom: 0;
+      right: 0;
+      background: #06c755;
+      color: white;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      border: 2px solid white;
+    }
+
+    .uid-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #f1f5f9;
+      color: var(--text-muted);
+      padding: 4px 10px;
+      border-radius: var(--radius-full);
+      font-size: 11px;
+      margin-top: 6px;
+      cursor: pointer;
+    }
+
+    .uid-pill:active {
+      background: #e2e8f0;
+    }
+
+    .info-readonly-card {
+      background: #f8fafc;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 12px;
+      margin-bottom: 14px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      font-size: 11.5px;
+    }
+
+    .info-item label {
+      display: block;
+      color: var(--text-muted);
+      font-size: 10.5px;
+      margin-bottom: 2px;
+    }
+
+    .info-item span {
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .password-wrapper {
+      position: relative;
+    }
+
+    .password-toggle-btn {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 4px;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Loading Overlay -->
+  <div id="loadingOverlay">
+    <div class="loading-icon-wrapper">
+      <div class="loading-spinner"></div>
+      <i class="fa-solid fa-user loading-tool-icon"></i>
+    </div>
+    <div id="loadingText">กำลังโหลดข้อมูลโปรไฟล์...</div>
+    <div id="loadingSubText">กรุณารอสักครู่</div>
+    <div class="loading-progress">
+      <div class="loading-progress-bar"></div>
+    </div>
+  </div>
+
+  <!-- App Container -->
+  <div class="app-container">
+
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-brand">
+        <a href="index.html" class="header-icon-btn" style="text-decoration: none;" title="กลับ">
+          <i class="fa-solid fa-arrow-left"></i>
+        </a>
+        <div>
+          <h1 class="header-title">ข้อมูลส่วนตัว</h1>
+          <p class="header-subtitle">โปรไฟล์และบัญชีผู้ใช้งาน</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="header-icon-btn" onclick="copyUserId()" title="คัดลอก LINE UID">
+          <i class="fa-regular fa-copy"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="main-content fade-in">
+
+      <!-- Profile Hero Card -->
+      <div class="profile-hero">
+        <div class="avatar-wrapper">
+          <img id="avatarImage" src="https://ui-avatars.com/api/?name=User&background=2563eb&color=fff" alt="User Avatar" class="avatar-img" />
+          <div class="line-badge" title="LINE Verified">
+            <i class="fa-brands fa-line"></i>
+          </div>
+        </div>
+
+        <h2 id="heroDisplayName" style="font-size: 16px; font-weight: 700; color: var(--text-main); margin-bottom: 2px;">
+          ผู้ใช้งาน LINE
+        </h2>
+        <p id="heroDept" style="font-size: 11.5px; color: var(--primary); font-weight: 600;">
+          <i class="fa-solid fa-building-user" style="margin-right: 4px;"></i><span id="heroDeptText">-</span>
+        </p>
+
+        <div class="uid-pill" onclick="copyUserId()" title="แตะเพื่อคัดลอก LINE UID">
+          <i class="fa-regular fa-id-badge"></i>
+          <span id="displayUserId">LINE ID: -</span>
+          <i class="fa-regular fa-copy" style="font-size: 10px;"></i>
+        </div>
+      </div>
+
+      <!-- Read-only Account Info (จาก Sheet Users) -->
+      <div class="info-readonly-card">
+        <div class="info-item">
+          <label><i class="fa-solid fa-user-check"></i> ชื่อ-นามสกุล (Name)</label>
+          <span id="infoName">-</span>
+        </div>
+        <div class="info-item">
+          <label><i class="fa-solid fa-id-card-clip"></i> รหัสพนักงาน (Emp Code)</label>
+          <span id="infoEmpCode">-</span>
+        </div>
+        <div class="info-item" style="grid-column: span 2;">
+          <label><i class="fa-solid fa-envelope"></i> อีเมล (Email)</label>
+          <span id="infoEmail">-</span>
+        </div>
+      </div>
+
+      <!-- Technician View Shortcut -->
+      <a href="technician.html" style="text-decoration: none; display: block; margin-bottom: 14px;">
+        <div class="card" style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: white; padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; border: none; margin-bottom: 0;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <i class="fa-solid fa-toolbox" style="font-size: 20px; color: #bae6fd;"></i>
+            <div>
+              <div style="font-size: 13px; font-weight: 700;">เข้าสู่หน้างานช่างซ่อมบำรุง (MT)</div>
+              <div style="font-size: 11px; opacity: 0.85;">จัดการใบงานและบันทึกปิดงานซ่อม</div>
+            </div>
+          </div>
+          <i class="fa-solid fa-arrow-right" style="font-size: 13px;"></i>
+        </div>
+      </a>
+
+      <!-- Edit Profile Form (แก้ไขเฉพาะ 4 ฟิลด์ตามที่กำหนด) -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">
+            <i class="fa-solid fa-pen-to-square" style="color: var(--primary);"></i>
+            แก้ไขข้อมูลผู้ใช้งาน
+          </span>
+          <span style="font-size: 10.5px; color: var(--text-muted);">
+            <span class="required">*</span> ข้อมูลที่อนุญาตให้แก้ไข
+          </span>
+        </div>
+
+        <form id="profileForm" onsubmit="handleProfileSubmit(event)">
+
+          <!-- 1. display_name -->
+          <div class="form-group">
+            <label class="form-label">
+              ชื่อแสดงในระบบ (Display Name) <span class="required">*</span>
+            </label>
+            <input
+              type="text"
+              id="profDisplayName"
+              name="display_name"
+              required
+              placeholder="เช่น ช่างสมชาย, วิศวกรตั้ม"
+              class="form-input"
+            />
+          </div>
+
+          <!-- 2. dept_code -->
+          <div class="form-group">
+            <label class="form-label">
+              รหัสแผนก (Dept Code) <span class="required">*</span>
+            </label>
+            <input
+              type="text"
+              id="profDeptCode"
+              name="dept_code"
+              required
+              placeholder="เช่น MT, PP, QA, WH"
+              list="dept-options"
+              class="form-input"
+            />
+            <datalist id="dept-options">
+              <option value="MT" label="MT - ฝ่ายซ่อมบำรุง"></option>
+              <option value="PP" label="PP - ฝ่ายผลิต"></option>
+              <option value="QA" label="QA - ควบคุมคุณภาพ"></option>
+              <option value="QC" label="QC - ตรวจสอบคุณภาพ"></option>
+              <option value="WH" label="WH - คลังสินค้า"></option>
+              <option value="ENG" label="ENG - วิศวกรรม"></option>
+              <option value="IT" label="IT - เทคโนโลยีสารสนเทศ"></option>
+              <option value="HR" label="HR - ฝ่ายบุคคล"></option>
+            </datalist>
+          </div>
+
+          <!-- 3. username -->
+          <div class="form-group">
+            <label class="form-label">
+              ชื่อผู้ใช้งาน (Username) <span class="required">*</span>
+            </label>
+            <input
+              type="text"
+              id="profUsername"
+              name="username"
+              required
+              placeholder="เช่น somchai.m"
+              class="form-input"
+            />
+          </div>
+
+          <!-- 4. password -->
+          <div class="form-group">
+            <label class="form-label">
+              รหัสผ่าน (Password) <span class="required">*</span>
+            </label>
+            <div class="password-wrapper">
+              <input
+                type="password"
+                id="profPassword"
+                name="password"
+                required
+                placeholder="ระบุรหัสผ่านเข้าสู่ระบบ"
+                class="form-input"
+                style="padding-right: 36px;"
+              />
+              <button
+                type="button"
+                id="togglePassBtn"
+                onclick="togglePasswordVisibility()"
+                class="password-toggle-btn"
+                title="แสดง/ซ่อนรหัสผ่าน"
+              >
+                <i id="togglePassIcon" class="fa-regular fa-eye"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Save Button -->
+          <button type="submit" id="saveProfileBtn" class="btn-primary" style="margin-top: 12px;">
+            <i class="fa-solid fa-floppy-disk"></i> บันทึกการเปลี่ยนแปลง
+          </button>
+        </form>
+      </div>
+
+      <!-- Account Actions Card -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">
+            <i class="fa-solid fa-shield-halved" style="color: var(--secondary);"></i>
+            การจัดการบัญชี
+          </span>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <button onclick="clearCacheAndReload()" class="btn-primary" style="background: #f1f5f9; color: var(--text-main); font-size: 12px; padding: 10px; border: 1px solid var(--border-color);">
+            <i class="fa-solid fa-rotate-right"></i> ล้างแคชและรีเฟรชข้อมูล
+          </button>
+          
+          <button onclick="LiffAuth.logout()" class="btn-primary" style="background: #fef2f2; color: #dc2626; font-size: 12px; padding: 10px; border: 1px solid #fecaca;">
+            <i class="fa-solid fa-right-from-bracket"></i> ออกจากระบบ (Logout)
+          </button>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+      <a href="index.html" class="nav-item">
+        <i class="fa-solid fa-house"></i>
+        <span>หน้าหลัก</span>
+      </a>
+
+      <a href="tracking.html" class="nav-item">
+        <i class="fa-solid fa-list-check"></i>
+        <span>ติดตามงาน</span>
+      </a>
+
+      <a href="create-ticket.html" class="nav-item-highlight" title="แจ้งซ่อม">
+        <i class="fa-solid fa-plus"></i>
+      </a>
+
+      <a href="tracking.html?filter=history" class="nav-item">
+        <i class="fa-solid fa-clock-rotate-left"></i>
+        <span>ประวัติ</span>
+      </a>
+
+      <a href="profile.html" class="nav-item active">
+        <i class="fa-solid fa-user"></i>
+        <span>โปรไฟล์</span>
+      </a>
+    </nav>
+
+  </div>
+
+  <!-- Shared Scripts -->
+  <script src="js/liff-auth.js"></script>
+  <script src="js/api.js"></script>
+
+  <script>
+    let activeUser = null;
+    let currentUserProfile = {};
+
+    window.addEventListener("load", async () => {
+      LiffAuth.showLoading("กำลังโหลดข้อมูลโปรไฟล์...", "กรุณารอสักครู่");
+
+      try {
+        activeUser = await LiffAuth.init({
+          requiredAuth: false,
+          onReady: (user) => {
+            renderLiffUser(user);
+          }
+        });
+
+        const userId = activeUser ? activeUser.userId : "";
+        if (userId) {
+          await loadUserProfileFromSheet(userId);
+        }
+      } catch (err) {
+        console.error("Profile Init Error:", err);
+      } finally {
+        LiffAuth.hideLoading();
+      }
+    });
+
+    /**
+     * แสดงข้อมูลจาก LINE LIFF ขั้นต้น
+     */
+    function renderLiffUser(user) {
+      if (!user) return;
+
+      const avatarEl = document.getElementById("avatarImage");
+      const nameEl = document.getElementById("heroDisplayName");
+      const uidEl = document.getElementById("displayUserId");
+
+      if (avatarEl && user.pictureUrl) avatarEl.src = user.pictureUrl;
+      if (nameEl) nameEl.textContent = user.displayName || "ผู้ใช้งาน LINE";
+      if (uidEl) {
+        const shortId = user.userId ? `${user.userId.substring(0, 12)}...` : "Guest";
+        uidEl.textContent = `LINE UID: ${shortId}`;
+      }
+
+      // ค่าเริ่มต้นของ display_name จาก LINE ถ้ายังไม่มี
+      const dispInput = document.getElementById("profDisplayName");
+      if (dispInput && !dispInput.value && user.displayName) {
+        dispInput.value = user.displayName;
+      }
+    }
+
+    /**
+     * ดึงข้อมูลผู้ใช้จาก Google Sheet Users ตาม userId
+     */
+    async function loadUserProfileFromSheet(userId) {
+      // 1. ลองดึงจาก LocalStorage ก่อน
+      const cached = localStorage.getItem(`cmms_user_sheet_${userId}`);
+      if (cached) {
+        try {
+          currentUserProfile = JSON.parse(cached);
+          populateProfileData(currentUserProfile);
+        } catch (e) {
+          console.warn("Cached profile parse error:", e);
+        }
+      }
+
+      // 2. เรียก API GAS ดึงข้อมูลล่าสุด
+      try {
+        const res = await CmmsApi.getUserProfile(userId);
+        if (res && res.status === "success" && res.data) {
+          currentUserProfile = res.data;
+          localStorage.setItem(`cmms_user_sheet_${userId}`, JSON.stringify(currentUserProfile));
+          populateProfileData(currentUserProfile);
+        }
+      } catch (e) {
+        console.warn("Could not fetch remote user profile from GAS:", e);
+      }
+    }
+
+    /**
+     * แสดงผลข้อมูลลงฟิลด์ต่างๆ ตามโครงสร้าง Sheet Users:
+     * userId | name | email | display_name | picture_url | dept_code | emp_code | username | password
+     */
+    function populateProfileData(data) {
+      if (!data) return;
+
+      // ข้อมูล Read-Only
+      if (data.name) document.getElementById("infoName").textContent = data.name;
+      if (data.emp_code || data.empCode) document.getElementById("infoEmpCode").textContent = data.emp_code || data.empCode;
+      if (data.email) document.getElementById("infoEmail").textContent = data.email;
+      if (data.picture_url || data.pictureUrl) {
+        document.getElementById("avatarImage").src = data.picture_url || data.pictureUrl;
+      }
+
+      // ข้อมูล 4 ฟิลด์ที่แก้ไขได้
+      const displayNameVal = data.display_name || data.displayName || "";
+      const deptCodeVal = data.dept_code || data.deptCode || "";
+      const usernameVal = data.username || "";
+      const passwordVal = data.password || "";
+
+      if (displayNameVal) {
+        document.getElementById("profDisplayName").value = displayNameVal;
+        document.getElementById("heroDisplayName").textContent = displayNameVal;
+      }
+
+      if (deptCodeVal) {
+        document.getElementById("profDeptCode").value = deptCodeVal;
+        document.getElementById("heroDeptText").textContent = `แผนก ${deptCodeVal}`;
+      } else {
+        document.getElementById("heroDeptText").textContent = "CMMS Member";
+      }
+
+      if (usernameVal) {
+        document.getElementById("profUsername").value = usernameVal;
+      }
+
+      if (passwordVal) {
+        document.getElementById("profPassword").value = passwordVal;
+      }
+    }
+
+    /**
+     * บันทึกข้อมูลเฉพาะ 4 ฟิลด์: display_name, dept_code, username, password
+     */
+    async function handleProfileSubmit(e) {
+      e.preventDefault();
+
+      const btn = document.getElementById("saveProfileBtn");
+      btn.disabled = true;
+      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> กำลังบันทึก...`;
+
+      LiffAuth.showLoading("กำลังบันทึกข้อมูล...", "กรุณารอสักครู่");
+
+      const userId = activeUser ? activeUser.userId : (currentUserProfile.userId || "guest");
+      const displayName = document.getElementById("profDisplayName").value.trim();
+      const deptCode = document.getElementById("profDeptCode").value.trim();
+      const username = document.getElementById("profUsername").value.trim();
+      const password = document.getElementById("profPassword").value.trim();
+
+      // เตรียม Payload ส่งเฉพาะ 4 ฟิลด์หลัก + userId
+      const payload = {
+        userId: userId,
+        display_name: displayName,
+        dept_code: deptCode,
+        username: username,
+        password: password
+      };
+
+      // บันทึกลง LocalStorage ทันที
+      const updatedProfile = {
+        ...currentUserProfile,
+        ...payload
+      };
+      currentUserProfile = updatedProfile;
+      localStorage.setItem(`cmms_user_sheet_${userId}`, JSON.stringify(updatedProfile));
+
+      // อัปเดตข้อมูล Session ของ User สำหรับ Dashboard ด้วย
+      if (activeUser) {
+        activeUser.displayName = displayName;
+        activeUser.display_name = displayName;
+        activeUser.dept_code = deptCode;
+        LiffAuth.saveUser(activeUser);
+      }
+
+      // อัปเดต UI ทันที
+      document.getElementById("heroDisplayName").textContent = displayName;
+      document.getElementById("heroDeptText").textContent = deptCode ? `แผนก ${deptCode}` : "CMMS Member";
+
+      try {
+        const res = await CmmsApi.updateUserProfile(userId, payload);
+        LiffAuth.hideLoading();
+
+        if (res && res.status === "success") {
+          alert("บันทึกข้อมูลส่วนตัวเรียบร้อยแล้ว ✅");
+        } else {
+          alert(res?.message || "บันทึกข้อมูลเรียบร้อยแล้ว");
+        }
+      } catch (err) {
+        LiffAuth.hideLoading();
+        console.warn("API update profile error (saved locally):", err);
+        alert("บันทึกข้อมูลในอุปกรณ์เรียบร้อยแล้ว");
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> บันทึกการเปลี่ยนแปลง`;
+      }
+    }
+
+    /**
+     * สลับการแสดง / ซ่อนรหัสผ่าน
+     */
+    function togglePasswordVisibility() {
+      const passInput = document.getElementById("profPassword");
+      const icon = document.getElementById("togglePassIcon");
+      if (passInput.type === "password") {
+        passInput.type = "text";
+        icon.classList.remove("fa-eye");
+        icon.classList.add("fa-eye-slash");
+      } else {
+        passInput.type = "password";
+        icon.classList.remove("fa-eye-slash");
+        icon.classList.add("fa-eye");
+      }
+    }
+
+    /**
+     * คัดลอก LINE User ID
+     */
+    function copyUserId() {
+      const uid = activeUser ? activeUser.userId : (currentUserProfile.userId || "");
+      if (!uid) {
+        alert("ไม่พบรหัสผู้ใช้งาน");
+        return;
+      }
+
+      navigator.clipboard.writeText(uid).then(() => {
+        alert("คัดลอก LINE User ID เรียบร้อยแล้ว:\n" + uid);
+      }).catch(() => {
+        prompt("LINE User ID ของคุณคือ:", uid);
+      });
+    }
+
+    /**
+     * ล้างแคช
+     */
+    function clearCacheAndReload() {
+      if (confirm("คุณต้องการล้างข้อมูลแคชและรีโหลดหน้าใหม่ใช่หรือไม่?")) {
+        localStorage.clear();
+        location.reload();
+      }
+    }
+  </script>
+</body>
+</html>

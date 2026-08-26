@@ -7,7 +7,7 @@
 const CmmsApi = (function () {
   // Google Apps Script Web App Endpoint URL
   const DEFAULT_GAS_URL =
-    "https://script.google.com/macros/s/AKfycbyprBc-C0Me4hwY9ByhDf8xHLIERj90U1iHXtTIvaKIHFQPxEGCY8cfm6vXUaJbN_ZNZA/exec";
+    "https://script.google.com/macros/s/AKfycbyaWIz-ck1T1OVO4L8bPCfNyextIBh34rx1QV_yPpzkwjIsQ4-Kjh2ahlDdlXllJH6vOw/exec";
 
   let baseUrl = DEFAULT_GAS_URL;
 
@@ -565,7 +565,7 @@ const CmmsApi = (function () {
   }
 
   // Public Interface
-  
+
   /**
    * 15. ตรวจสอบสิทธิ์ Manager จาก Sheet Users
    */

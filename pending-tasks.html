@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>AUT CMMS - รายการงานค้าง (Manager Dispatch)</title>
+
+  <!-- Google Fonts & Central CSS -->
+  <link rel="stylesheet" href="css/style.css" />
+
+  <!-- FontAwesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" />
+
+  <!-- LINE LIFF SDK -->
+  <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+  <style>
+    .manager-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: var(--radius-full);
+      font-size: 10px;
+      font-weight: 700;
+      background: #eff6ff;
+      color: #1d4ed8;
+      border: 1px solid #bfdbfe;
+    }
+    .filter-tabs {
+      display: flex;
+      gap: 6px;
+      background: #f1f5f9;
+      padding: 4px;
+      border-radius: var(--radius-md);
+      margin-bottom: 12px;
+    }
+    .filter-tab-btn {
+      flex: 1;
+      border: none;
+      background: transparent;
+      padding: 8px 10px;
+      border-radius: var(--radius-sm);
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: center;
+    }
+    .filter-tab-btn.active {
+      background: #ffffff;
+      color: var(--text-main);
+      box-shadow: var(--shadow-sm);
+    }
+    .pending-card {
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 16px;
+      margin-bottom: 12px;
+      box-shadow: var(--shadow-sm);
+      transition: all 0.2s ease;
+    }
+    .pending-card:hover {
+      box-shadow: var(--shadow-md);
+      border-color: #cbd5e1;
+    }
+    .pending-card.bm-card {
+      border-color: #fca5a5;
+    }
+    .card-top-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #f1f5f9;
+      margin-bottom: 10px;
+    }
+    .req-code {
+      font-family: monospace;
+      font-weight: 700;
+      font-size: 13px;
+      color: var(--text-main);
+    }
+    .type-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      border-radius: var(--radius-full);
+      font-size: 10.5px;
+      font-weight: 700;
+    }
+    .type-pill.bm {
+      background: #fef2f2;
+      color: #dc2626;
+      border: 1px solid #fecaca;
+    }
+    .type-pill.cm {
+      background: #eff6ff;
+      color: #2563eb;
+      border: 1px solid #bfdbfe;
+    }
+    .pulse-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #dc2626;
+      display: inline-block;
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+      0% { transform: scale(0.9); opacity: 1; }
+      50% { transform: scale(1.3); opacity: 0.5; }
+      100% { transform: scale(0.9); opacity: 1; }
+    }
+    .info-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      font-size: 12.5px;
+      margin-bottom: 6px;
+    }
+    .info-icon {
+      color: var(--primary);
+      width: 14px;
+      margin-top: 3px;
+      font-size: 11px;
+    }
+    .desc-box {
+      background: #f8fafc;
+      border: 1px solid #f1f5f9;
+      border-radius: var(--radius-md);
+      padding: 10px 12px;
+      margin: 10px 0;
+      font-size: 12px;
+      color: var(--text-main);
+      display: flex;
+      gap: 10px;
+    }
+    .desc-img {
+      width: 52px;
+      height: 52px;
+      border-radius: var(--radius-sm);
+      object-fit: cover;
+      border: 1px solid var(--border-color);
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+    .card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding-top: 10px;
+      border-top: 1px solid #f1f5f9;
+      font-size: 11.5px;
+      color: var(--text-muted);
+    }
+    .btn-assign {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: var(--radius-md);
+      font-size: 12px;
+      font-weight: 700;
+      font-family: inherit;
+      color: #ffffff;
+      background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+      transition: all 0.2s ease;
+    }
+    .btn-assign:hover {
+      background: linear-gradient(135deg, #047857 0%, #059669 100%);
+      transform: translateY(-1px);
+    }
+    .btn-assign:active {
+      transform: translateY(0);
+    }
+
+    /* Modal Styles */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(2px);
+      z-index: 999;
+      display: none;
+      align-items: flex-end;
+      justify-content: center;
+    }
+    @media (min-width: 640px) {
+      .modal-overlay {
+        align-items: center;
+        padding: 16px;
+      }
+    }
+    .modal-container {
+      background: #ffffff;
+      width: 100%;
+      max-width: 500px;
+      border-radius: 20px 20px 0 0;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: var(--shadow-lg);
+      animation: slideUp 0.25s ease-out;
+    }
+    @media (min-width: 640px) {
+      .modal-container {
+        border-radius: var(--radius-lg);
+      }
+    }
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+    .modal-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #f8fafc;
+    }
+    .modal-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+    .modal-body {
+      padding: 20px;
+      overflow-y: auto;
+      flex: 1;
+    }
+    .modal-footer {
+      padding: 14px 20px;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      background: #f8fafc;
+    }
+    .assignee-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-bottom: 1px solid #f1f5f9;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+    .assignee-item:hover {
+      background: #f8fafc;
+    }
+    .workload-badge {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: var(--radius-full);
+      border: 1px solid transparent;
+    }
+    .workload-free { background: #ecfdf5; color: #059669; border-color: #a7f3d0; }
+    .workload-busy { background: #fffbeb; color: #d97706; border-color: #fde68a; }
+    .workload-heavy { background: #fef2f2; color: #dc2626; border-color: #fecaca; }
+
+    .due-day-btn {
+      flex: 1;
+      padding: 8px 6px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-color);
+      background: #f8fafc;
+      color: var(--text-main);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.15s ease;
+    }
+    .due-day-btn.active {
+      background: #eff6ff;
+      border-color: #3b82f6;
+      color: #2563eb;
+      font-weight: 700;
+    }
+    .access-denied-box {
+      background: #ffffff;
+      border: 1px solid #fed7aa;
+      border-radius: var(--radius-lg);
+      padding: 30px 20px;
+      text-align: center;
+      margin: 40px 0;
+      box-shadow: var(--shadow-sm);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- =========================================================
+       LOADING OVERLAY
+  ========================================================== -->
+  <div id="loadingOverlay">
+    <div class="loading-icon-wrapper">
+      <div class="loading-spinner"></div>
+      <i class="fa-solid fa-clipboard-list loading-tool-icon"></i>
+    </div>
+    <div id="loadingText">กำลังตรวจสอบสิทธิ์หัวหน้างาน...</div>
+    <div id="loadingSubText">กรุณารอสักครู่</div>
+    <div class="loading-progress">
+      <div class="loading-progress-bar"></div>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       MAIN APP CONTAINER
+  ========================================================== -->
+  <div class="app-container">
+
+    <!-- Top Header -->
+    <header class="app-header">
+      <div class="header-brand">
+        <a href="index.html" style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: var(--radius-sm); background: #f1f5f9;">
+          <i class="fa-solid fa-arrow-left" style="font-size: 13px;"></i>
+        </a>
+        <div style="margin-left: 6px;">
+          <h1 class="header-title" style="font-size: 15px;">รายการงานค้าง</h1>
+          <p class="header-subtitle">Manager Dispatch Portal</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="header-icon-btn" onclick="loadPendingTasks()" title="รีเฟรชข้อมูล">
+          <i class="fa-solid fa-rotate-right"></i>
+        </button>
+        <a href="profile.html" class="header-icon-btn" title="โปรไฟล์">
+          <i class="fa-regular fa-user"></i>
+        </a>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="app-main" style="padding: 14px 16px 80px 16px;">
+
+      <!-- Access Denied Card (แสดงเมื่อไม่ใช่ Manager) -->
+      <div id="accessDeniedView" class="access-denied-box" style="display: none;">
+        <div style="width: 60px; height: 60px; border-radius: 50%; background: #fff7ed; color: #ea580c; display: flex; align-items: center; justify-content: center; font-size: 26px; margin: 0 auto 16px auto;">
+          <i class="fa-solid fa-shield-halved"></i>
+        </div>
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-main); margin-bottom: 6px;">ไม่มีสิทธิ์เข้าถึงหน้านี้</h3>
+        <p id="accessDeniedMsg" style="font-size: 12.5px; color: var(--text-muted); line-height: 1.6; margin-bottom: 20px;">
+          หน้ารายการงานค้างและมอบหมายงาน (Pending Tasks) สงวนสิทธิ์สำหรับผู้ใช้งานตำแหน่ง <strong>Manager</strong> เท่านั้น
+        </p>
+        <div style="display: flex; justify-content: center; gap: 10px;">
+          <a href="index.html" style="display: inline-flex; align-items: center; gap: 6px; padding: 10px 18px; border-radius: var(--radius-md); background: #f1f5f9; color: var(--text-main); font-size: 12px; font-weight: 600; text-decoration: none;">
+            <i class="fa-solid fa-house"></i> กลับหน้าหลัก
+          </a>
+          <button onclick="initManagerAuth()" style="display: inline-flex; align-items: center; gap: 6px; padding: 10px 18px; border-radius: var(--radius-md); background: var(--primary); color: #ffffff; font-size: 12px; font-weight: 600; border: none; cursor: pointer; font-family: inherit;">
+            <i class="fa-solid fa-rotate-right"></i> ตรวจสอบสิทธิ์อีกครั้ง
+          </button>
+        </div>
+      </div>
+
+      <!-- Manager View (แสดงเมื่อผ่านการตรวจสอบสิทธิ์) -->
+      <div id="managerView" style="display: none;">
+
+        <!-- User Profile Card -->
+        <div style="background: #ffffff; border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 12px 16px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; box-shadow: var(--shadow-sm);">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="width: 38px; height: 38px; border-radius: 50%; background: var(--primary-light); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 16px; overflow: hidden;">
+              <img id="managerAvatarImg" src="" alt="" style="width: 100%; height: 100%; object-fit: cover; display: none;" onerror="this.style.display='none'">
+              <i id="managerAvatarIcon" class="fa-solid fa-user-tie"></i>
+            </div>
+            <div>
+              <div id="managerNameText" style="font-size: 13.5px; font-weight: 700; color: var(--text-main);">Manager</div>
+              <div style="font-size: 11px; color: var(--text-muted);" id="managerDeptText">ฝ่ายซ่อมบำรุง / บริหารจัดการ</div>
+            </div>
+          </div>
+          <span class="manager-badge">
+            <i class="fa-solid fa-check-double"></i> Manager
+          </span>
+        </div>
+
+        <!-- Metrics KPI Grid -->
+        <div class="stats-grid" style="grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 12px;">
+          <div class="stat-box" style="padding: 12px;">
+            <div class="stat-icon" style="background: #fef3c7; color: #b45309; width: 34px; height: 34px; font-size: 14px;">
+              <i class="fa-solid fa-clock"></i>
+            </div>
+            <div>
+              <div id="metricTotal" class="stat-value" style="font-size: 18px;">0</div>
+              <div class="stat-label" style="font-size: 10.5px;">งานค้างทั้งหมด</div>
+            </div>
+          </div>
+
+          <div class="stat-box" style="padding: 12px; border: 1px solid #fecaca; background: #fff5f5;">
+            <div class="stat-icon" style="background: #fee2e2; color: #dc2626; width: 34px; height: 34px; font-size: 14px;">
+              <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <div>
+              <div id="metricBm" class="stat-value" style="font-size: 18px; color: #dc2626;">0</div>
+              <div class="stat-label" style="font-size: 10.5px; color: #ef4444; font-weight: 600;">Breakdown (BM)</div>
+            </div>
+          </div>
+
+          <div class="stat-box" style="padding: 12px;">
+            <div class="stat-icon" style="background: #dbeafe; color: #1d4ed8; width: 34px; height: 34px; font-size: 14px;">
+              <i class="fa-solid fa-wrench"></i>
+            </div>
+            <div>
+              <div id="metricCm" class="stat-value" style="font-size: 18px; color: #2563eb;">0</div>
+              <div class="stat-label" style="font-size: 10.5px;">ซ่อมทั่วไป (CM)</div>
+            </div>
+          </div>
+
+          <div class="stat-box" style="padding: 12px;">
+            <div class="stat-icon" style="background: #f3e8ff; color: #7e22ce; width: 34px; height: 34px; font-size: 14px;">
+              <i class="fa-solid fa-fire"></i>
+            </div>
+            <div>
+              <div id="metricHigh" class="stat-value" style="font-size: 18px; color: #7e22ce;">0</div>
+              <div class="stat-label" style="font-size: 10.5px;">ความเร่งด่วนสูง</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filter Tabs -->
+        <div class="filter-tabs">
+          <button class="filter-tab-btn active" onclick="setFilter('ALL', this)">
+            ทั้งหมด (<span id="tabCountAll">0</span>)
+          </button>
+          <button class="filter-tab-btn" onclick="setFilter('BM', this)">
+            <span class="pulse-dot" style="margin-right: 3px;"></span> BM (<span id="tabCountBm">0</span>)
+          </button>
+          <button class="filter-tab-btn" onclick="setFilter('CM', this)">
+            <i class="fa-solid fa-wrench" style="font-size: 10px; color: #2563eb; margin-right: 3px;"></i> CM (<span id="tabCountCm">0</span>)
+          </button>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="search-bar-wrapper" style="margin-bottom: 14px;">
+          <i class="fa-solid fa-magnifying-glass search-icon"></i>
+          <input type="text" id="searchInput" class="search-input" oninput="handleSearch()" placeholder="ค้นหารหัสคำขอ, เครื่องจักร, อุปกรณ์, อาการเสีย หรือผู้แจ้ง..." />
+          <button type="button" id="clearSearchBtn" onclick="clearSearchInput()" style="display: none; position: absolute; right: 10px; background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px;">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <!-- Pending Tasks List Container -->
+        <div id="pendingListContainer">
+          <!-- Dynamic cards rendered here -->
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" style="display: none; text-align: center; padding: 40px 20px; background: #ffffff; border-radius: var(--radius-lg); border: 1px solid var(--border-color);">
+          <div style="width: 50px; height: 50px; border-radius: 50%; background: #ecfdf5; color: #10b981; display: flex; align-items: center; justify-content: center; font-size: 20px; margin: 0 auto 12px auto;">
+            <i class="fa-solid fa-check"></i>
+          </div>
+          <h4 style="font-size: 14px; font-weight: 700; color: var(--text-main); margin-bottom: 4px;">ไม่มีรายการงานค้างในขณะนี้</h4>
+          <p style="font-size: 12px; color: var(--text-muted);">ใบแจ้งซ่อมทั้งหมดได้รับการออกใบสั่งงานเรียบร้อยแล้ว</p>
+        </div>
+
+      </div>
+
+    </main>
+
+    <!-- Bottom Navigation Bar -->
+    <nav class="bottom-nav">
+      <a href="index.html" class="nav-item">
+        <i class="fa-solid fa-house"></i>
+        <span>หน้าหลัก</span>
+      </a>
+      <a href="create-ticket.html" class="nav-item">
+        <i class="fa-solid fa-paper-plane"></i>
+        <span>แจ้งซ่อม</span>
+      </a>
+      <a href="pending-tasks.html" class="nav-item active">
+        <i class="fa-solid fa-clipboard-list"></i>
+        <span>งานค้าง</span>
+      </a>
+      <a href="technician.html" class="nav-item">
+        <i class="fa-solid fa-toolbox"></i>
+        <span>งานช่าง</span>
+      </a>
+      <a href="profile.html" class="nav-item">
+        <i class="fa-regular fa-user"></i>
+        <span>โปรไฟล์</span>
+      </a>
+    </nav>
+
+  </div>
+
+  <!-- =========================================================
+       ASSIGN TASK MODAL
+  ========================================================== -->
+  <div id="assignModal" class="modal-overlay">
+    <div class="modal-container">
+      
+      <!-- Modal Header -->
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <div style="width: 32px; height: 32px; border-radius: var(--radius-sm); background: #eff6ff; color: #2563eb; display: flex; align-items: center; justify-content: center; font-size: 14px;">
+            <i class="fa-solid fa-user-plus"></i>
+          </div>
+          <div>
+            <div class="modal-title">มอบหมายงานและออกใบสั่งงาน</div>
+            <div id="modalReqCodeLabel" style="font-size: 11px; font-family: monospace; color: var(--primary); font-weight: 700;">-</div>
+          </div>
+        </div>
+        <button onclick="closeAssignModal()" style="background: none; border: none; width: 30px; height: 30px; border-radius: 50%; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center;">
+          <i class="fa-solid fa-xmark" style="font-size: 14px;"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="modal-body">
+        
+        <!-- Work Order Type -->
+        <div style="margin-bottom: 14px;">
+          <label style="display: block; font-size: 12px; font-weight: 700; color: var(--text-main); margin-bottom: 6px;">ประเภทใบสั่งงาน (Work Order Type):</label>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+            <label style="display: flex; align-items: center; gap: 8px; padding: 10px; border-radius: var(--radius-md); border: 1px solid var(--border-color); cursor: pointer;">
+              <input type="radio" name="modalWoType" value="CM" id="radioWoCm" checked style="accent-color: var(--primary);" />
+              <div>
+                <div style="font-size: 12px; font-weight: 700;">CM (Corrective)</div>
+                <div style="font-size: 10px; color: var(--text-muted);">งานแจ้งซ่อมทั่วไป</div>
+              </div>
+            </label>
+
+            <label style="display: flex; align-items: center; gap: 8px; padding: 10px; border-radius: var(--radius-md); border: 1px solid #fecaca; background: #fff5f5; cursor: pointer;">
+              <input type="radio" name="modalWoType" value="BM" id="radioWoBm" style="accent-color: #dc2626;" />
+              <div>
+                <div style="font-size: 12px; font-weight: 700; color: #dc2626;">BM (Breakdown)</div>
+                <div style="font-size: 10px; color: #ef4444;">เครื่องจักรหยุดฉุกเฉิน</div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Assignee Type Toggle -->
+        <div style="margin-bottom: 14px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <label style="font-size: 12px; font-weight: 700; color: var(--text-main);">ผู้รับผิดชอบงาน:</label>
+            <div style="display: flex; gap: 4px; background: #f1f5f9; padding: 2px; border-radius: var(--radius-sm);">
+              <button type="button" id="btnToggleInternal" onclick="switchAssigneeCategory('INTERNAL')" style="border: none; padding: 3px 8px; font-size: 11px; font-weight: 700; border-radius: 6px; background: #ffffff; color: var(--text-main); cursor: pointer; box-shadow: var(--shadow-sm);">ช่างภายใน</button>
+              <button type="button" id="btnToggleVendor" onclick="switchAssigneeCategory('VENDOR')" style="border: none; padding: 3px 8px; font-size: 11px; font-weight: 500; border-radius: 6px; background: transparent; color: var(--text-muted); cursor: pointer;">ผู้รับเหมา</button>
+            </div>
+          </div>
+
+          <!-- Checklist -->
+          <div id="assigneeChecklist" style="border: 1px solid var(--border-color); border-radius: var(--radius-md); max-height: 180px; overflow-y: auto;">
+            <!-- Rendered by JS -->
+          </div>
+
+          <!-- Selection Summary -->
+          <div id="assigneeSummaryBox" style="display: none; margin-top: 6px; padding: 6px 10px; border-radius: var(--radius-sm); background: #eff6ff; font-size: 11px; color: #1d4ed8; font-weight: 600;">
+            <i class="fa-solid fa-circle-check" style="margin-right: 4px;"></i>
+            <span id="assigneeSummaryText">-</span>
+          </div>
+        </div>
+
+        <!-- Due Days Selector -->
+        <div>
+          <label style="display: block; font-size: 12px; font-weight: 700; color: var(--text-main); margin-bottom: 6px;">กำหนดเสร็จภายใน (วัน):</label>
+          <div style="display: flex; gap: 6px;">
+            <button type="button" class="due-day-btn active" onclick="selectDueDay(1, this)">1 วัน</button>
+            <button type="button" class="due-day-btn" onclick="selectDueDay(3, this)">3 วัน</button>
+            <button type="button" class="due-day-btn" onclick="selectDueDay(5, this)">5 วัน</button>
+            <button type="button" class="due-day-btn" onclick="selectDueDay(7, this)">7 วัน</button>
+          </div>
+          <input type="hidden" id="modalDueDaysVal" value="1" />
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="modal-footer">
+        <button type="button" onclick="closeAssignModal()" style="padding: 8px 16px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: #ffffff; color: var(--text-main); font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit;">
+          ยกเลิก
+        </button>
+        <button type="button" id="btnConfirmAssign" onclick="submitModalAssignment()" class="btn-assign" style="padding: 8px 18px;">
+          <i class="fa-solid fa-circle-check"></i> ยืนยันออกใบสั่งงาน
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Image Preview Modal -->
+  <div id="imagePreviewModal" style="position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 1000; display: none; align-items: center; justify-content: center; padding: 20px;" onclick="closeImagePreview()">
+    <img id="previewModalImg" src="" alt="" style="max-width: 100%; max-height: 85vh; border-radius: var(--radius-md); box-shadow: var(--shadow-lg);" />
+  </div>
+
+  <!-- =========================================================
+       SCRIPTS
+  ========================================================== -->
+  <script src="js/api.js"></script>
+  <script src="js/liff-auth.js"></script>
+
+  <script>
+    let rawPendingTasks = [];
+    let activeFilter = 'ALL';
+    let currentAssigneeType = 'INTERNAL';
+    let cachedAssignees = { technicians: [], vendors: [] };
+    let activeRequestCode = null;
+    let currentManager = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      initManagerAuth();
+    });
+
+    /**
+     * 1. ตรวจสอบสิทธิ์ Manager
+     */
+    async function initManagerAuth() {
+      LiffAuth.showLoading('กำลังตรวจสอบสิทธิ์...', 'เชื่อมต่อระบบและสิทธิ์การเข้าถึง');
+      document.getElementById('accessDeniedView').style.display = 'none';
+      document.getElementById('managerView').style.display = 'none';
+
+      try {
+        const user = await LiffAuth.init();
+        if (!user || !user.userId) {
+          LiffAuth.hideLoading();
+          showAccessDenied('ไม่พบข้อมูลผู้ใช้งาน LINE LIFF กรุณาเข้าสู่ระบบผ่าน LINE');
+          return;
+        }
+
+        // ตรวจสอบ Role กับ Sheet Users
+        const roleRes = await CmmsApi.checkManagerRole(user.userId);
+        LiffAuth.hideLoading();
+
+        if (roleRes && (roleRes.isManager || (roleRes.role && roleRes.role.toLowerCase() === 'manager') || (roleRes.role && roleRes.role.toLowerCase() === 'admin'))) {
+          currentManager = roleRes.user || user;
+          setupManagerUI(currentManager);
+          document.getElementById('managerView').style.display = 'block';
+          loadPendingTasks();
+        } else {
+          const msg = roleRes.message || 'ขออภัย คุณไม่มีสิทธิ์เข้าถึงหน้ารายการงานค้าง (เฉพาะตำแหน่ง Manager เท่านั้น)';
+          showAccessDenied(msg);
+        }
+      } catch (err) {
+        LiffAuth.hideLoading();
+        console.error('initManagerAuth error:', err);
+        showAccessDenied('เกิดข้อผิดพลาดในการตรวจสอบสิทธิ์: ' + (err.message || err));
+      }
+    }
+
+    function setupManagerUI(user) {
+      document.getElementById('managerNameText').innerText = user.displayName || user.name || user.userName || 'Manager';
+      if (user.deptCode || user.department) {
+        document.getElementById('managerDeptText').innerText = 'แผนก: ' + (user.deptCode || user.department);
+      }
+      if (user.pictureUrl) {
+        const img = document.getElementById('managerAvatarImg');
+        img.src = user.pictureUrl;
+        img.style.display = 'block';
+        document.getElementById('managerAvatarIcon').style.display = 'none';
+      }
+    }
+
+    function showAccessDenied(msg) {
+      document.getElementById('accessDeniedMsg').innerText = msg;
+      document.getElementById('accessDeniedView').style.display = 'block';
+      document.getElementById('managerView').style.display = 'none';
+    }
+
+    /**
+     * 2. ดึงรายการงานค้าง (Pending Requests)
+     */
+    async function loadPendingTasks() {
+      const container = document.getElementById('pendingListContainer');
+      const empty = document.getElementById('emptyState');
+      container.innerHTML = '<div style="text-align: center; padding: 30px; font-size: 12px; color: var(--text-muted);"><i class="fa-solid fa-circle-notch fa-spin" style="color: var(--primary); margin-right: 6px;"></i> กำลังโหลดรายการงานค้าง...</div>';
+      empty.style.display = 'none';
+
+      try {
+        const res = await CmmsApi.getPendingRequests();
+        const items = (res && res.data) ? res.data : (Array.isArray(res) ? res : []);
+        rawPendingTasks = items;
+
+        updateMetrics(items);
+        renderPendingCards();
+      } catch (err) {
+        console.error('loadPendingTasks error:', err);
+        container.innerHTML = `<div style="padding: 16px; background: #fef2f2; border: 1px solid #fecaca; border-radius: var(--radius-md); text-align: center; font-size: 12px; color: #dc2626;">เกิดข้อผิดพลาดในการโหลดข้อมูล: ${escapeHtml(err.message || String(err))}</div>`;
+      }
+    }
+
+    /**
+     * 3. อัปเดต Summary Metrics
+     */
+    function updateMetrics(items) {
+      const total = items.length;
+      const bm = items.filter(i => (i.request_type || '').toUpperCase() === 'BM').length;
+      const cm = items.filter(i => (i.request_type || '').toUpperCase() === 'CM').length;
+      const high = items.filter(i => {
+        const p = String(i.priority || '').toLowerCase();
+        return p.includes('high') || p.includes('urgent') || p.includes('ด่วน');
+      }).length;
+
+      document.getElementById('metricTotal').innerText = total;
+      document.getElementById('metricBm').innerText = bm;
+      document.getElementById('metricCm').innerText = cm;
+      document.getElementById('metricHigh').innerText = high;
+
+      document.getElementById('tabCountAll').innerText = total;
+      document.getElementById('tabCountBm').innerText = bm;
+      document.getElementById('tabCountCm').innerText = cm;
+    }
+
+    /**
+     * 4. Filter & Search
+     */
+    function setFilter(type, btnEl) {
+      activeFilter = type;
+      document.querySelectorAll('.filter-tab-btn').forEach(btn => btn.classList.remove('active'));
+      btnEl.classList.add('active');
+      renderPendingCards();
+    }
+
+    function handleSearch() {
+      const val = document.getElementById('searchInput').value;
+      document.getElementById('clearSearchBtn').style.display = val.trim() ? 'block' : 'none';
+      renderPendingCards();
+    }
+
+    function clearSearchInput() {
+      document.getElementById('searchInput').value = '';
+      handleSearch();
+    }
+
+    /**
+     * 5. Render Cards
+     */
+    function renderPendingCards() {
+      const container = document.getElementById('pendingListContainer');
+      const empty = document.getElementById('emptyState');
+      const q = (document.getElementById('searchInput').value || '').toLowerCase().trim();
+
+      let filtered = rawPendingTasks.filter(item => {
+        const t = (item.request_type || 'CM').toUpperCase();
+        if (activeFilter === 'BM' && t !== 'BM') return false;
+        if (activeFilter === 'CM' && t !== 'CM') return false;
+        return true;
+      });
+
+      if (q) {
+        filtered = filtered.filter(item => {
+          const code = String(item.request_code || '').toLowerCase();
+          const asset = String(item.asset_code || '').toLowerCase();
+          const mName = String(item.machine_name || '').toLowerCase();
+          const comp = String(item.component_code || item.comp_code || item.component_description || '').toLowerCase();
+          const desc = String(item.issue_desc || item.issue_description || '').toLowerCase();
+          const rep = String(item.reporter_name || item.reporter_by || '').toLowerCase();
+          return code.includes(q) || asset.includes(q) || mName.includes(q) || comp.includes(q) || desc.includes(q) || rep.includes(q);
+        });
+      }
+
+      if (filtered.length === 0) {
+        container.innerHTML = '';
+        empty.style.display = 'block';
+        return;
+      }
+
+      empty.style.display = 'none';
+
+      container.innerHTML = filtered.map(item => {
+        const isBm = (item.request_type || 'CM').toUpperCase() === 'BM';
+        const typeClass = isBm ? 'type-pill bm' : 'type-pill cm';
+        const typeText = isBm ? '<span class="pulse-dot"></span> BM (Breakdown)' : '<i class="fa-solid fa-wrench" style="font-size: 9px;"></i> CM (ซ่อมทั่วไป)';
+
+        const pri = String(item.priority || 'Normal').toLowerCase();
+        let priBadge = '<span style="font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; background: #f1f5f9; color: #64748b;">Normal</span>';
+        if (pri.includes('high') || pri.includes('urgent') || pri.includes('ด่วน')) {
+          priBadge = '<span style="font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; background: #fef3c7; color: #b45309; border: 1px solid #fde68a;"><i class="fa-solid fa-fire" style="font-size: 9px;"></i> ด่วน</span>';
+        }
+
+        const hasImg = item.issue_image && item.issue_image.length > 5;
+        const reqCode = escapeHtml(item.request_code || '-');
+        const assetCode = escapeHtml(item.asset_code || '-');
+        const machineName = escapeHtml(item.machine_name || item.asset_name || '-');
+        const compDesc = escapeHtml(item.component_description || item.component_name || item.component_code || '-');
+        const issueDesc = escapeHtml(item.issue_desc || item.issue_description || '-');
+        const reqDate = escapeHtml(item.request_date || '-');
+        const reporter = escapeHtml(item.reporter_name || item.reporter_by || 'ผู้แจ้งซ่อม');
+
+        return `
+          <div class="pending-card ${isBm ? 'bm-card' : ''}">
+            
+            <div class="card-top-row">
+              <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                <span class="req-code">${reqCode}</span>
+                <span class="${typeClass}">${typeText}</span>
+                ${priBadge}
+              </div>
+              <span style="font-size: 11px; color: var(--text-muted);">
+                <i class="fa-regular fa-calendar" style="margin-right: 2px;"></i> ${reqDate}
+              </span>
+            </div>
+
+            <div>
+              <div class="info-row">
+                <i class="fa-solid fa-industry info-icon"></i>
+                <div>
+                  <strong style="color: var(--text-main);">${machineName}</strong>
+                  <span style="font-family: monospace; font-size: 11.5px; color: var(--text-muted); margin-left: 4px;">(${assetCode})</span>
+                </div>
+              </div>
+
+              ${compDesc && compDesc !== '-' ? `
+                <div class="info-row" style="color: #475569;">
+                  <i class="fa-solid fa-gears info-icon" style="color: #94a3b8;"></i>
+                  <span>${compDesc}</span>
+                </div>
+              ` : ''}
+            </div>
+
+            <div class="desc-box">
+              <div style="flex: 1; min-width: 0;">
+                <span style="display: block; font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 2px;">อาการเสีย:</span>
+                <div style="font-weight: 500; line-height: 1.5;">${issueDesc}</div>
+              </div>
+              ${hasImg ? `
+                <img src="${escapeHtml(item.issue_image)}" alt="Photo" class="desc-img" onclick="openImagePreview('${escapeHtml(item.issue_image)}')" onerror="this.style.display='none'" />
+              ` : ''}
+            </div>
+
+            <div class="card-footer">
+              <span>
+                <i class="fa-solid fa-user-pen" style="margin-right: 3px;"></i> ผู้แจ้ง: <strong style="color: var(--text-main);">${reporter}</strong>
+              </span>
+              <button type="button" onclick="openAssignModal('${reqCode}', '${item.request_type || 'CM'}')" class="btn-assign">
+                <i class="fa-solid fa-user-plus"></i> มอบหมายงาน
+              </button>
+            </div>
+
+          </div>`;
+      }).join('');
+    }
+
+    /**
+     * 6. Assign Modal
+     */
+    async function openAssignModal(requestCode, reqType) {
+      activeRequestCode = requestCode;
+      document.getElementById('modalReqCodeLabel').innerText = 'รหัสคำขอ: ' + requestCode;
+
+      const isBm = (reqType || 'CM').toUpperCase() === 'BM';
+      if (isBm) document.getElementById('radioWoBm').checked = true;
+      else document.getElementById('radioWoCm').checked = true;
+
+      selectDueDay(1, document.querySelector('.due-day-btn'));
+      document.getElementById('assignModal').style.display = 'flex';
+
+      loadAssignees();
+    }
+
+    function closeAssignModal() {
+      document.getElementById('assignModal').style.display = 'none';
+      activeRequestCode = null;
+    }
+
+    function switchAssigneeCategory(type) {
+      currentAssigneeType = type;
+      const btnInt = document.getElementById('btnToggleInternal');
+      const btnVen = document.getElementById('btnToggleVendor');
+
+      if (type === 'INTERNAL') {
+        btnInt.style.background = '#ffffff';
+        btnInt.style.fontWeight = '700';
+        btnInt.style.color = 'var(--text-main)';
+        btnVen.style.background = 'transparent';
+        btnVen.style.fontWeight = '500';
+        btnVen.style.color = 'var(--text-muted)';
+      } else {
+        btnVen.style.background = '#ffffff';
+        btnVen.style.fontWeight = '700';
+        btnVen.style.color = 'var(--text-main)';
+        btnInt.style.background = 'transparent';
+        btnInt.style.fontWeight = '500';
+        btnInt.style.color = 'var(--text-muted)';
+      }
+      renderAssigneeList();
+    }
+
+    async function loadAssignees() {
+      const container = document.getElementById('assigneeChecklist');
+      container.innerHTML = '<div style="padding: 20px; text-align: center; font-size: 11.5px; color: var(--text-muted);"><i class="fa-solid fa-circle-notch fa-spin" style="color: var(--primary); margin-right: 4px;"></i> กำลังโหลดรายชื่อช่าง...</div>';
+
+      try {
+        const data = await CmmsApi.getAssigneeMasterData();
+        cachedAssignees = data || { technicians: [], vendors: [] };
+        renderAssigneeList();
+      } catch (err) {
+        container.innerHTML = `<div style="padding: 16px; text-align: center; font-size: 11.5px; color: #dc2626;">โหลดรายชื่อไม่สำเร็จ</div>`;
+      }
+    }
+
+    function renderAssigneeList() {
+      const container = document.getElementById('assigneeChecklist');
+      const list = currentAssigneeType === 'INTERNAL' ? cachedAssignees.technicians : cachedAssignees.vendors;
+      const emptyMsg = currentAssigneeType === 'INTERNAL' ? 'ไม่พบรายชื่อช่างในระบบ' : 'ไม่พบรายชื่อผู้รับเหมา';
+
+      if (!list || list.length === 0) {
+        container.innerHTML = `<div style="padding: 20px; text-align: center; font-size: 11.5px; color: var(--text-muted);">${emptyMsg}</div>`;
+        return;
+      }
+
+      container.innerHTML = list.map(item => {
+        const count = item.pending_count || 0;
+        let badgeClass = 'workload-free';
+        let badgeText = 'ว่าง';
+        if (count > 0 && count <= 3) {
+          badgeClass = 'workload-busy';
+          badgeText = count + ' งาน';
+        } else if (count > 3) {
+          badgeClass = 'workload-heavy';
+          badgeText = count + ' งาน';
+        }
+
+        return `
+          <label class="assignee-item">
+            <input type="checkbox" name="modalAssigneeCb" value="${escapeHtml(item.name)}" data-id="${escapeHtml(item.user_id)}" onchange="updateModalAssigneeSummary()" style="accent-color: var(--primary); width: 16px; height: 16px;" />
+            <div style="flex: 1; min-width: 0;">
+              <div style="font-size: 12.5px; font-weight: 700; color: var(--text-main);">${escapeHtml(item.name)}</div>
+              <div style="font-size: 10.5px; color: var(--text-muted);">ID: ${escapeHtml(item.user_id)}</div>
+            </div>
+            <span class="workload-badge ${badgeClass}">${badgeText}</span>
+          </label>`;
+      }).join('');
+
+      updateModalAssigneeSummary();
+    }
+
+    function updateModalAssigneeSummary() {
+      const checked = document.querySelectorAll('input[name="modalAssigneeCb"]:checked');
+      const box = document.getElementById('assigneeSummaryBox');
+      const text = document.getElementById('assigneeSummaryText');
+
+      if (checked.length > 0) {
+        const names = Array.from(checked).map(cb => cb.value).join(', ');
+        text.innerText = `เลือกแล้ว ${checked.length} ราย: ${names}`;
+        box.style.display = 'block';
+      } else {
+        box.style.display = 'none';
+      }
+    }
+
+    function selectDueDay(days, btnEl) {
+      document.getElementById('modalDueDaysVal').value = days;
+      document.querySelectorAll('.due-day-btn').forEach(btn => btn.classList.remove('active'));
+      if (btnEl) btnEl.classList.add('active');
+    }
+
+    async function submitModalAssignment() {
+      if (!activeRequestCode) return;
+
+      const checked = document.querySelectorAll('input[name="modalAssigneeCb"]:checked');
+      const assignees = Array.from(checked).map(cb => cb.value);
+      const assigneeIds = Array.from(checked).map(cb => cb.getAttribute('data-id') || '');
+      const woType = document.querySelector('input[name="modalWoType"]:checked')?.value || 'CM';
+      const dueDays = parseInt(document.getElementById('modalDueDaysVal').value || 1, 10);
+      const btn = document.getElementById('btnConfirmAssign');
+
+      if (assignees.length === 0) {
+        alert('กรุณาเลือกช่างหรือผู้รับเหมาอย่างน้อย 1 คน');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> กำลังบันทึก...';
+
+      const payload = {
+        requestCode: activeRequestCode,
+        requestCodes: [activeRequestCode],
+        assignees: assignees,
+        assigneeIds: assigneeIds,
+        assigneeType: currentAssigneeType,
+        dueDays: dueDays,
+        workorderType: woType,
+        assignedBy: (currentManager && (currentManager.displayName || currentManager.name)) || 'Manager'
+      };
+
+      try {
+        const res = await CmmsApi.assignPendingTask(payload);
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-circle-check"></i> ยืนยันออกใบสั่งงาน';
+
+        if (res && res.success) {
+          alert(`ออกใบสั่งงานสำเร็จ!\nเลขที่: ${res.woCode || '-'} (${woType})\nมอบหมายให้: ${assignees.join(', ')}`);
+          closeAssignModal();
+          loadPendingTasks();
+        } else {
+          alert('เกิดข้อผิดพลาด: ' + (res.message || res.error || 'ไม่สามารถออกใบสั่งงานได้'));
+        }
+      } catch (err) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-circle-check"></i> ยืนยันออกใบสั่งงาน';
+        alert('เกิดข้อผิดพลาด: ' + (err.message || String(err)));
+      }
+    }
+
+    /**
+     * 7. Image Zoom Preview
+     */
+    function openImagePreview(url) {
+      if (!url) return;
+      document.getElementById('previewModalImg').src = url;
+      document.getElementById('imagePreviewModal').style.display = 'flex';
+    }
+
+    function closeImagePreview() {
+      document.getElementById('imagePreviewModal').style.display = 'none';
+    }
+
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+  </script>
+</body>
+</html>

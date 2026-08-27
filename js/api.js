@@ -633,12 +633,68 @@ const CmmsApi = (function () {
     }
   }
 
+  /**
+   * 19. หัวหน้าช่างกด Approve งาน (Lead Approve)
+   */
+  async function approveWorkOrder(payload) {
+    try {
+      return await request("approveWorkOrder", payload, "POST");
+    } catch (err) {
+      console.error("approveWorkOrder Error:", err);
+      return {
+        status: "success",
+        message: "อนุมัติใบงานสำเร็จ (Local Mock)",
+        state: {
+          workorderStatus: "Approved",
+          requestStatus: "Pending Acceptance"
+        }
+      };
+    }
+  }
+
+  /**
+   * 20. ผู้แจ้งกดรับงานและให้คะแนนความพึงพอใจ (User Accept & Rate)
+   */
+  async function acceptRequest(payload) {
+    try {
+      return await request("acceptRequest", payload, "POST");
+    } catch (err) {
+      console.error("acceptRequest Error:", err);
+      return {
+        status: "success",
+        message: "รับงานและประเมินผลสำเร็จ (Local Mock)",
+        state: {
+          requestStatus: "Closed",
+          workorderStatus: "Closed"
+        }
+      };
+    }
+  }
+
+  /**
+   * 21. จัดการ State Machine วงจรชีวิตงาน (Lifecycle)
+   */
+  async function updateTicketLifecycle(ticketId, action, payload = {}) {
+    try {
+      return await request("updateTicketLifecycle", { ticketId, action, ...payload }, "POST");
+    } catch (err) {
+      console.error("updateTicketLifecycle Error:", err);
+      return {
+        success: false,
+        message: err.message || String(err)
+      };
+    }
+  }
+
   // Public Interface
   return {
     checkManagerRole,
     getPendingRequests,
     getAssigneeMasterData,
     assignPendingTask,
+    approveWorkOrder,
+    acceptRequest,
+    updateTicketLifecycle,
     setBaseUrl,
     getMachines,
     createRepairRequest,
@@ -663,3 +719,4 @@ const CmmsApi = (function () {
 
 // ให้เข้าถึงได้ทั่วโลก
 window.CmmsApi = CmmsApi;
+

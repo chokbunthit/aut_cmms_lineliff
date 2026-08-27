@@ -229,6 +229,9 @@
         <button class="filter-pill" onclick="setFilter('pending', this)">
           รอดำเนินการ <span id="countPending" style="opacity: 0.8;">(0)</span>
         </button>
+        <button class="filter-pill" onclick="setFilter('acceptance', this)" style="border-color: #f59e0b; color: #b45309;">
+          <i class="fa-solid fa-bell" style="font-size: 10px; margin-right: 2px;"></i> รอรับงาน <span id="countAcceptance" style="font-weight: 700;">(0)</span>
+        </button>
         <button class="filter-pill" onclick="setFilter('progress', this)">
           กำลังซ่อม <span id="countProgress" style="opacity: 0.8;">(0)</span>
         </button>
@@ -295,6 +298,19 @@
         <span id="modalStatusBadge" class="badge badge-pending">รอดำเนินการ</span>
       </div>
 
+      <!-- Action Card when waiting for User Acceptance -->
+      <div id="userAcceptActionBox" style="display: none; background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border: 1.5px solid #f59e0b; border-radius: var(--radius-md); padding: 14px; margin-bottom: 14px; text-align: center;">
+        <div style="font-size: 13px; font-weight: 700; color: #92400e; margin-bottom: 4px;">
+          <i class="fa-solid fa-circle-check" style="color: #d97706; margin-right: 4px;"></i> ช่างดำเนินการซ่อมเสร็จและผ่านการอนุมัติแล้ว
+        </div>
+        <div style="font-size: 11.5px; color: #78350f; margin-bottom: 10px;">
+          กรุณาตรวจสอบผลการปฏิบัติงาน และกดปุ่มเพื่อรับมอบงานพร้อมประเมินความพึงพอใจ
+        </div>
+        <button type="button" onclick="openAcceptModal()" class="btn-primary" style="background: linear-gradient(135deg, #16a34a 0%, #15803d 100%); border: none; padding: 10px 18px; font-size: 13px; font-weight: 700; width: 100%; box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3);">
+          <i class="fa-solid fa-star" style="margin-right: 6px;"></i> กดรับงานและประเมินผล
+        </button>
+      </div>
+
       <div style="background: #f8fafc; border-radius: var(--radius-md); padding: 12px; margin-bottom: 14px; border: 1px solid var(--border-color);">
         <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">ข้อมูลเครื่องจักร</div>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px;">
@@ -316,34 +332,87 @@
         <img id="modalImage" src="" alt="Ticket Image" style="width: 100%; max-height: 220px; object-fit: contain; background: #000; border-radius: var(--radius-md);" />
       </div>
 
-      <!-- Status Timeline -->
-      <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); margin-bottom: 8px;">ลำดับขั้นตอนการดำเนินงาน</div>
+      <!-- Status Timeline (5 Stages) -->
+      <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); margin-bottom: 8px;">ลำดับขั้นตอนการดำเนินงาน (5-Stage Flow)</div>
       <div class="timeline">
         <div id="step1" class="timeline-step completed">
           <div class="timeline-step-dot"></div>
-          <div style="font-size: 12px; font-weight: 600;">แจ้งซ่อมสำเร็จ</div>
+          <div style="font-size: 12px; font-weight: 600;">1. แจ้งซ่อมสำเร็จ (Request: Pending)</div>
           <div style="font-size: 10.5px; color: var(--text-muted);">ระบบบันทึกคำขอแจ้งซ่อมเข้าระบบ</div>
         </div>
         <div id="step2" class="timeline-step">
           <div class="timeline-step-dot"></div>
-          <div style="font-size: 12px; font-weight: 600;">ทีมช่างรับเรื่อง / ตรวจสอบ</div>
-          <div style="font-size: 10.5px; color: var(--text-muted);">กำลังวางแผนและมอบหมายช่างผู้รับผิดชอบ</div>
+          <div style="font-size: 12px; font-weight: 600;">2. มอบหมายช่างแล้ว (In Progress)</div>
+          <div style="font-size: 10.5px; color: var(--text-muted);">ออกใบสั่งงาน Work Order และมอบหมายช่าง</div>
         </div>
         <div id="step3" class="timeline-step">
           <div class="timeline-step-dot"></div>
-          <div style="font-size: 12px; font-weight: 600;">กำลังดำเนินการซ่อม / เปลี่ยนอะไหล่</div>
-          <div style="font-size: 10.5px; color: var(--text-muted);">ช่างเข้าดำเนินการแก้ไขหน้างาน</div>
+          <div style="font-size: 12px; font-weight: 600;">3. ช่างซ่อมเสร็จ รอตรวจงาน (Pending Approval)</div>
+          <div style="font-size: 10.5px; color: var(--text-muted);">ช่างบันทึกผลการซ่อมและส่งให้หัวหน้าตรวจ</div>
         </div>
         <div id="step4" class="timeline-step">
           <div class="timeline-step-dot"></div>
-          <div style="font-size: 12px; font-weight: 600;">เสร็จสิ้น / ทดสอบผ่าน</div>
-          <div style="font-size: 10.5px; color: var(--text-muted);">งานซ่อมเสร็จสมบูรณ์ พร้อมใช้งาน</div>
+          <div style="font-size: 12px; font-weight: 600;">4. ผ่านการตรวจ รอผู้แจ้งรับงาน (Pending Acceptance)</div>
+          <div style="font-size: 10.5px; color: var(--text-muted);">หัวหน้าอนุมัติงานแล้ว รอผู้แจ้งกดยืนยันรับงาน</div>
+        </div>
+        <div id="step5" class="timeline-step">
+          <div class="timeline-step-dot"></div>
+          <div style="font-size: 12px; font-weight: 600;">5. รับมอบงานสมบูรณ์ (Closed)</div>
+          <div style="font-size: 10.5px; color: var(--text-muted);">ผู้แจ้งตรวจสอบผ่านและประเมินผลเรียบร้อย</div>
         </div>
       </div>
 
       <button onclick="closeDetailModal()" class="btn-primary" style="margin-top: 12px; background: #e2e8f0; color: #334155;">
         ปิดหน้าต่าง
       </button>
+    </div>
+  </div>
+
+  <!-- Acceptance & Rating Modal -->
+  <div id="acceptModal" class="modal-overlay">
+    <div class="modal-content" style="max-width: 420px; border-radius: 20px;">
+      <div style="text-align: center; margin-bottom: 16px;">
+        <div style="width: 50px; height: 50px; border-radius: 50%; background: #dcfce7; color: #16a34a; display: inline-flex; align-items: center; justify-content: center; font-size: 24px; margin-bottom: 8px;">
+          <i class="fa-solid fa-check"></i>
+        </div>
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-main); margin-bottom: 4px;">ยืนยันรับมอบงานซ่อม</h3>
+        <p style="font-size: 12px; color: var(--text-muted);" id="acceptTicketLabel">Ticket No: -</p>
+      </div>
+
+      <div style="margin-bottom: 16px; text-align: center;">
+        <label style="display: block; font-size: 12px; font-weight: 700; color: var(--text-main); margin-bottom: 8px;">
+          ประเมินความพึงพอใจการให้บริการ
+        </label>
+        <div id="starRatingContainer" style="display: flex; justify-content: center; gap: 8px; font-size: 26px; color: #cbd5e1; cursor: pointer;">
+          <i class="fa-solid fa-star star-btn" onclick="setRatingStar(1)" data-star="1"></i>
+          <i class="fa-solid fa-star star-btn" onclick="setRatingStar(2)" data-star="2"></i>
+          <i class="fa-solid fa-star star-btn" onclick="setRatingStar(3)" data-star="3"></i>
+          <i class="fa-solid fa-star star-btn" onclick="setRatingStar(4)" data-star="4"></i>
+          <i class="fa-solid fa-star star-btn active" onclick="setRatingStar(5)" data-star="5"></i>
+        </div>
+        <div id="starScoreText" style="font-size: 11px; color: #d97706; font-weight: 700; margin-top: 4px;">5 / 5 ดาว (ยอดเยี่ยมมาก)</div>
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <label style="display: block; font-size: 11px; font-weight: 700; color: var(--text-muted); margin-bottom: 4px;">
+          ข้อเสนอแนะหรือความคิดเห็นเพิ่มเติม (Optional)
+        </label>
+        <textarea
+          id="acceptFeedback"
+          rows="3"
+          placeholder="ระบุข้อคิดเห็นเกี่ยวกับการบริการของช่าง หรือสภาพเครื่องจักรหลังซ่อม..."
+          style="width: 100%; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 8px 10px; font-size: 12px; font-family: inherit; resize: none; outline: none;"
+        ></textarea>
+      </div>
+
+      <div style="display: flex; gap: 8px;">
+        <button type="button" onclick="closeAcceptModal()" style="flex: 1; padding: 10px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: white; color: var(--text-main); font-weight: 600; cursor: pointer;">
+          ยกเลิก
+        </button>
+        <button type="button" id="btnConfirmAccept" onclick="submitAcceptance()" class="btn-primary" style="flex: 2; background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);">
+          ยืนยันรับงาน
+        </button>
+      </div>
     </div>
   </div>
 
@@ -355,6 +424,8 @@
     let allTickets = [];
     let currentFilter = "all";
     let activeUser = null;
+    let currentSelectedTicket = null;
+    let currentRatingScore = 5;
 
     window.addEventListener("load", async () => {
       LiffAuth.showLoading("กำลังโหลดรายการ...", "กรุณารอสักครู่");
@@ -378,7 +449,7 @@
 
     function handleUrlParams() {
       const params = new URLSearchParams(window.location.search);
-      const statusParam = params.get("status");
+      const statusParam = params.get("status") || params.get("filter");
       const ticketParam = params.get("ticket");
 
       if (statusParam) {
@@ -386,17 +457,18 @@
         const matchingBtn = Array.from(document.querySelectorAll(".filter-pill")).find(btn => {
           const onclickAttr = (btn.getAttribute("onclick") || "").toLowerCase();
           return onclickAttr.includes(`'${paramLower}'`) ||
+            (paramLower === "acceptance" && onclickAttr.includes("acceptance")) ||
             (paramLower === "reject" && onclickAttr.includes("rejected")) ||
             (paramLower === "rejected" && onclickAttr.includes("reject"));
         });
         if (matchingBtn) {
-          setFilter(paramLower === "reject" ? "rejected" : statusParam, matchingBtn);
+          setFilter(paramLower, matchingBtn);
         }
       }
 
       if (ticketParam) {
         const found = allTickets.find(t =>
-          (t.ticketNo || t.id || "").toLowerCase() === ticketParam.toLowerCase()
+          (t.ticketNo || t.id || t.requestCode || "").toLowerCase() === ticketParam.toLowerCase()
         );
         if (found) {
           openTicketDetail(found);
@@ -434,19 +506,26 @@
     }
 
     function updateFilterCounts() {
-      let pending = 0, progress = 0, waiting = 0, completed = 0, reject = 0;
+      let pending = 0, acceptance = 0, progress = 0, waiting = 0, completed = 0, reject = 0;
 
       allTickets.forEach(t => {
         const s = (t.status || t.Status || "").toLowerCase();
+        const reqS = (t.requestStatus || "").toLowerCase();
+        const woS = (t.workorderStatus || "").toLowerCase();
+
         if (s.includes("wait") || s.includes("รออะไหล่")) waiting++;
-        else if (s.includes("prog") || s.includes("ซ่อม") || s.includes("กำลัง")) progress++;
-        else if (s.includes("comp") || s.includes("เสร็จ") || s.includes("เรียบร้อย")) completed++;
+        else if (reqS === "pending acceptance" || s.includes("รอรับงาน") || s.includes("pending acceptance") || woS === "approved") acceptance++;
+        else if (s.includes("prog") || s.includes("ซ่อม") || s.includes("กำลัง") || woS === "pending approval") progress++;
+        else if (s.includes("comp") || s.includes("closed") || s.includes("เสร็จ") || s.includes("เรียบร้อย") || s.includes("ปิดงาน")) completed++;
         else if (s.includes("reject") || s.includes("ยกเลิก") || s.includes("ไม่อนุมัติ") || s.includes("ปฏิเสธ")) reject++;
         else pending++;
       });
 
       document.getElementById("countAll").textContent = `(${allTickets.length})`;
       document.getElementById("countPending").textContent = `(${pending})`;
+      if (document.getElementById("countAcceptance")) {
+        document.getElementById("countAcceptance").textContent = `(${acceptance})`;
+      }
       document.getElementById("countProgress").textContent = `(${progress})`;
       document.getElementById("countWaiting").textContent = `(${waiting})`;
       document.getElementById("countCompleted").textContent = `(${completed})`;
@@ -472,23 +551,27 @@
 
       let filtered = allTickets.filter(t => {
         const status = (t.status || t.Status || "").toLowerCase();
+        const reqS = (t.requestStatus || "").toLowerCase();
+        const woS = (t.workorderStatus || "").toLowerCase();
 
         // 1. Status Filter
         if (currentFilter === "pending") {
-          if (status.includes("prog") || status.includes("กำลัง") || status.includes("wait") || status.includes("รอ") || status.includes("เสร็จ") || status.includes("comp") || status.includes("reject") || status.includes("ยกเลิก") || status.includes("ไม่อนุมัติ") || status.includes("ปฏิเสธ")) return false;
+          if (status.includes("prog") || status.includes("กำลัง") || status.includes("wait") || status.includes("รอ") || status.includes("เสร็จ") || status.includes("comp") || status.includes("reject") || status.includes("closed") || reqS === "pending acceptance") return false;
+        } else if (currentFilter === "acceptance") {
+          if (reqS !== "pending acceptance" && !status.includes("รอรับงาน") && !status.includes("pending acceptance") && woS !== "approved") return false;
         } else if (currentFilter === "progress") {
-          if (!status.includes("prog") && !status.includes("กำลัง") && !status.includes("ซ่อม")) return false;
+          if (!status.includes("prog") && !status.includes("กำลัง") && !status.includes("ซ่อม") && woS !== "pending approval") return false;
         } else if (currentFilter === "waiting") {
           if (!status.includes("wait") && !status.includes("รออะไหล่")) return false;
         } else if (currentFilter === "completed") {
-          if (!status.includes("comp") && !status.includes("เสร็จ") && !status.includes("เรียบร้อย")) return false;
+          if (!status.includes("comp") && !status.includes("closed") && !status.includes("เสร็จ") && !status.includes("เรียบร้อย") && !status.includes("ปิดงาน")) return false;
         } else if (currentFilter === "rejected" || currentFilter === "reject") {
           if (!status.includes("reject") && !status.includes("ยกเลิก") && !status.includes("ไม่อนุมัติ") && !status.includes("ปฏิเสธ")) return false;
         }
 
         // 2. Search Query Filter
         if (searchQuery) {
-          const matchNo = (t.ticketNo || t.id || "").toLowerCase().includes(searchQuery);
+          const matchNo = (t.ticketNo || t.id || t.requestCode || "").toLowerCase().includes(searchQuery);
           const matchAsset = (t.assetCode || t.machineName || "").toLowerCase().includes(searchQuery);
           const matchSymptom = (t.symptom || t.description || "").toLowerCase().includes(searchQuery);
           const matchDept = (t.department || "").toLowerCase().includes(searchQuery);
@@ -505,29 +588,46 @@
 
       let html = "";
       filtered.forEach((t, index) => {
-        const ticketNo = t.ticketNo || t.id || `TK-${index + 1}`;
+        const ticketNo = t.ticketNo || t.requestCode || t.id || `TK-${index + 1}`;
         const asset = t.assetCode || t.machineName || "เครื่องจักรทั่วไป";
         const comp = t.componentCode ? ` - ${t.componentCode}` : "";
         const symptom = t.symptom || t.description || "-";
         const date = t.date || t.createdAt || "";
-        const status = t.status || t.Status || "รอดำเนินการ";
+        const status = t.status || t.Status || "Pending";
         const reqType = t.reqType || "CM";
+        const reqStatus = (t.requestStatus || "").trim();
 
         let badgeClass = "badge-pending";
+        let displayStatusText = status;
         const s = status.toLowerCase();
-        if (s.includes("กำลัง") || s.includes("prog")) badgeClass = "badge-progress";
-        else if (s.includes("รอ") && s.includes("อะไหล่")) badgeClass = "badge-waiting";
-        else if (s.includes("เสร็จ") || s.includes("comp")) badgeClass = "badge-completed";
-        else if (s.includes("ยกเลิก") || s.includes("reject")) badgeClass = "badge-rejected";
+
+        if (reqStatus === "Pending Acceptance" || s.includes("รอรับงาน") || s.includes("pending acceptance")) {
+          badgeClass = "badge-waiting";
+          displayStatusText = "รอรับงาน (Pending Acceptance)";
+        } else if (s.includes("pending approval") || s.includes("รอหัวหน้า")) {
+          badgeClass = "badge-progress";
+          displayStatusText = "รอหัวหน้าตรวจ (Pending Approval)";
+        } else if (s.includes("กำลัง") || s.includes("prog")) {
+          badgeClass = "badge-progress";
+        } else if (s.includes("รอ") && s.includes("อะไหล่")) {
+          badgeClass = "badge-waiting";
+        } else if (s.includes("เสร็จ") || s.includes("comp") || s.includes("closed")) {
+          badgeClass = "badge-completed";
+          displayStatusText = "ปิดงานสมบูรณ์ (Closed)";
+        } else if (s.includes("ยกเลิก") || s.includes("reject")) {
+          badgeClass = "badge-rejected";
+        }
+
+        const isAwaitingAccept = reqStatus === "Pending Acceptance" || s.includes("pending acceptance");
 
         html += `
-          <div class="ticket-card" onclick='openTicketDetail(${JSON.stringify(t)})'>
+          <div class="ticket-card" onclick='openTicketDetail(${JSON.stringify(t)})' style="${isAwaitingAccept ? 'border-left: 4px solid #f59e0b;' : ''}">
             <div class="ticket-header">
               <span class="ticket-no">
                 <i class="fa-solid fa-ticket" style="margin-right: 4px; font-size: 11px;"></i>
                 #${ticketNo}
               </span>
-              <span class="badge ${badgeClass}">${status}</span>
+              <span class="badge ${badgeClass}">${displayStatusText}</span>
             </div>
             <div class="ticket-body">
               <div style="font-weight: 600; color: var(--text-main); margin-bottom: 3px; display: flex; align-items: center; justify-content: space-between;">
@@ -542,7 +642,10 @@
             </div>
             <div class="ticket-footer">
               <span><i class="fa-regular fa-calendar" style="margin-right: 3px;"></i>${date}</span>
-              <span style="color: var(--primary); font-weight: 600;">ดูสถานะ <i class="fa-solid fa-chevron-right" style="font-size: 9px;"></i></span>
+              <span style="color: ${isAwaitingAccept ? '#d97706' : 'var(--primary)'}; font-weight: 700;">
+                ${isAwaitingAccept ? '⭐ กดรับงาน ' : 'ดูสถานะ '}
+                <i class="fa-solid fa-chevron-right" style="font-size: 9px;"></i>
+              </span>
             </div>
           </div>
         `;
@@ -564,8 +667,10 @@
 
     function openTicketDetail(ticket) {
       if (!ticket) return;
+      currentSelectedTicket = ticket;
 
-      document.getElementById("modalTicketNo").textContent = `#${ticket.ticketNo || ticket.id || "-"}`;
+      const ticketNo = ticket.ticketNo || ticket.requestCode || ticket.id || "-";
+      document.getElementById("modalTicketNo").textContent = `#${ticketNo}`;
       document.getElementById("modalDate").textContent = `วันที่แจ้ง: ${ticket.date || ticket.createdAt || "-"}`;
       document.getElementById("modalAsset").textContent = ticket.assetCode || ticket.machineName || "-";
       document.getElementById("modalComp").textContent = ticket.componentCode || "-";
@@ -573,16 +678,30 @@
       document.getElementById("modalLoc").textContent = ticket.location || "-";
       document.getElementById("modalSymptom").textContent = ticket.symptom || ticket.description || "-";
 
-      const status = ticket.status || ticket.Status || "รอดำเนินการ";
+      const status = ticket.status || ticket.Status || "Pending";
+      const reqStatus = (ticket.requestStatus || "").trim();
       const statusBadge = document.getElementById("modalStatusBadge");
-      statusBadge.textContent = status;
+      
       const s = status.toLowerCase();
-      statusBadge.className = "badge " + (
-        s.includes("เสร็จ") || s.includes("comp") ? "badge-completed" :
-        s.includes("รอ") && s.includes("อะไหล่") ? "badge-waiting" :
-        s.includes("กำลัง") || s.includes("prog") || s.includes("ซ่อม") ? "badge-progress" :
-        s.includes("ยกเลิก") || s.includes("reject") || s.includes("ไม่อนุมัติ") || s.includes("ปฏิเสธ") ? "badge-rejected" : "badge-pending"
-      );
+      let badgeClass = "badge-pending";
+      let displayBadgeText = status;
+
+      if (reqStatus === "Pending Acceptance" || s.includes("pending acceptance") || s.includes("รอรับงาน")) {
+        badgeClass = "badge-waiting";
+        displayBadgeText = "รอผู้แจ้งรับงาน";
+      } else if (s.includes("pending approval") || s.includes("รอหัวหน้า")) {
+        badgeClass = "badge-progress";
+        displayBadgeText = "รอหัวหน้าตรวจสอบ";
+      } else if (s.includes("closed") || s.includes("เสร็จ") || s.includes("comp")) {
+        badgeClass = "badge-completed";
+        displayBadgeText = "ปิดงานสมบูรณ์";
+      } else if (s.includes("กำลัง") || s.includes("prog")) {
+        badgeClass = "badge-progress";
+        displayBadgeText = "กำลังดำเนินการ";
+      }
+
+      statusBadge.textContent = displayBadgeText;
+      statusBadge.className = "badge " + badgeClass;
 
       // Image
       const imgContainer = document.getElementById("modalImageContainer");
@@ -594,31 +713,51 @@
         imgContainer.style.display = "none";
       }
 
-      // Update Stepper
-      updateTimelineStepper(status);
+      // Show / Hide User Acceptance Action Box
+      const acceptBox = document.getElementById("userAcceptActionBox");
+      if (reqStatus === "Pending Acceptance" || s.includes("pending acceptance") || s.includes("รอรับงาน")) {
+        acceptBox.style.display = "block";
+      } else {
+        acceptBox.style.display = "none";
+      }
+
+      // Update 5-stage Stepper
+      updateTimelineStepper(status, ticket.requestStatus, ticket.workorderStatus);
 
       document.getElementById("detailModal").classList.add("active");
     }
 
-    function updateTimelineStepper(status) {
-      const s = status.toLowerCase();
+    function updateTimelineStepper(status, reqStatus = "", woStatus = "") {
+      const s = String(status || "").toLowerCase();
+      const r = String(reqStatus || "").toLowerCase();
+      const w = String(woStatus || "").toLowerCase();
+
       const s1 = document.getElementById("step1");
       const s2 = document.getElementById("step2");
       const s3 = document.getElementById("step3");
       const s4 = document.getElementById("step4");
+      const s5 = document.getElementById("step5");
 
+      [s1, s2, s3, s4, s5].forEach(st => { if (st) st.className = "timeline-step"; });
       s1.className = "timeline-step completed";
-      s2.className = "timeline-step";
-      s3.className = "timeline-step";
-      s4.className = "timeline-step";
 
-      if (s.includes("กำลัง") || s.includes("prog") || s.includes("ซ่อม") || s.includes("รอ")) {
-        s2.className = "timeline-step completed";
-        s3.className = "timeline-step current";
-      } else if (s.includes("เสร็จ") || s.includes("comp") || s.includes("เรียบร้อย")) {
+      if (r === "closed" || s.includes("closed") || w === "closed" || s.includes("เสร็จสิ้น")) {
         s2.className = "timeline-step completed";
         s3.className = "timeline-step completed";
         s4.className = "timeline-step completed";
+        s5.className = "timeline-step completed";
+      } else if (r === "pending acceptance" || s.includes("pending acceptance") || w === "approved") {
+        s2.className = "timeline-step completed";
+        s3.className = "timeline-step completed";
+        s4.className = "timeline-step completed";
+        s5.className = "timeline-step current";
+      } else if (w === "pending approval" || s.includes("pending approval")) {
+        s2.className = "timeline-step completed";
+        s3.className = "timeline-step completed";
+        s4.className = "timeline-step current";
+      } else if (s.includes("กำลัง") || s.includes("prog") || r === "in progress" || w === "in progress" || s.includes("รออะไหล่")) {
+        s2.className = "timeline-step completed";
+        s3.className = "timeline-step current";
       } else {
         s2.className = "timeline-step current";
       }
@@ -633,6 +772,83 @@
         closeDetailModal();
       }
     }
+
+    // Acceptance & Rating Modal handlers
+    function openAcceptModal() {
+      if (!currentSelectedTicket) return;
+      const ticketNo = currentSelectedTicket.ticketNo || currentSelectedTicket.requestCode || currentSelectedTicket.id || "-";
+      document.getElementById("acceptTicketLabel").textContent = `ใบแจ้งซ่อม: #${ticketNo}`;
+      document.getElementById("acceptFeedback").value = "";
+      setRatingStar(5);
+      document.getElementById("acceptModal").classList.add("active");
+    }
+
+    function closeAcceptModal() {
+      document.getElementById("acceptModal").classList.remove("active");
+    }
+
+    function setRatingStar(score) {
+      currentRatingScore = score;
+      const stars = document.querySelectorAll("#starRatingContainer .star-btn");
+      stars.forEach((star, idx) => {
+        if (idx < score) {
+          star.style.color = "#f59e0b";
+        } else {
+          star.style.color = "#cbd5e1";
+        }
+      });
+
+      const labels = {
+        1: "1 / 5 ดาว (ต้องปรับปรุง)",
+        2: "2 / 5 ดาว (พอใช้)",
+        3: "3 / 5 ดาว (ปานกลาง)",
+        4: "4 / 5 ดาว (ดีมาก)",
+        5: "5 / 5 ดาว (ยอดเยี่ยมมาก)"
+      };
+      document.getElementById("starScoreText").textContent = labels[score] || `${score} / 5 ดาว`;
+    }
+
+    async function submitAcceptance() {
+      if (!currentSelectedTicket) return;
+      const requestCode = currentSelectedTicket.requestCode || currentSelectedTicket.ticketNo || currentSelectedTicket.id;
+      const feedback = document.getElementById("acceptFeedback").value.trim();
+      const acceptedBy = activeUser ? (activeUser.displayName || activeUser.userName) : "Requester";
+
+      const btn = document.getElementById("btnConfirmAccept");
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> กำลังบันทึก...';
+
+      try {
+        const payload = {
+          requestCode: requestCode,
+          ticketNo: requestCode,
+          satisfactionScore: currentRatingScore,
+          satisfactionFeedback: feedback,
+          feedback: feedback,
+          acceptedBy: acceptedBy
+        };
+
+        const res = await CmmsApi.acceptRequest(payload);
+        alert(`รับมอบงาน #${requestCode} เรียบร้อยแล้ว!\nคะแนนประเมิน: ${currentRatingScore}/5 ดาว\nขอบคุณสำหรับการใช้บริการ`);
+        
+        closeAcceptModal();
+        closeDetailModal();
+
+        // Update local ticket state
+        currentSelectedTicket.status = "Closed";
+        currentSelectedTicket.requestStatus = "Closed";
+        currentSelectedTicket.workorderStatus = "Closed";
+
+        await fetchTickets(true);
+      } catch (err) {
+        console.error("submitAcceptance Error:", err);
+        alert("เกิดข้อผิดพลาดในการบันทึกรับงาน: " + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = "ยืนยันรับงาน";
+      }
+    }
   </script>
 </body>
 </html>
+

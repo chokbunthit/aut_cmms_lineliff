@@ -819,7 +819,7 @@
         </div>
 
         <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 14px;">
-          คุณกำลังจะเปลี่ยนสถานะใบงาน <strong id="modalWoNoText" style="color: var(--primary);">-</strong> เป็น <strong>"เสร็จสิ้น (Completed)"</strong>
+          คุณกำลังจะส่งมอบงาน <strong id="modalWoNoText" style="color: var(--primary);">-</strong> เพื่อให้หัวหน้าช่างตรวจสอบและอนุมัติ (<strong>Pending Approval</strong>)
         </p>
 
         <form id="finalCloseForm" onsubmit="handleFinalCloseSubmit(event)">
@@ -833,7 +833,7 @@
               ยกเลิก
             </button>
             <button type="submit" class="btn-primary" style="flex: 2; background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);">
-              <i class="fa-solid fa-check"></i> ยืนยันปิดใบงาน
+              <i class="fa-solid fa-paper-plane"></i> ส่งตรวจงาน (Submit)
             </button>
           </div>
         </form>
@@ -1917,7 +1917,7 @@
       e.preventDefault();
       closeCloseModal();
 
-      LiffAuth.showLoading("กำลังบันทึกปิดใบงาน...", currentActiveWO);
+      LiffAuth.showLoading("กำลังส่งตรวจงาน...", currentActiveWO);
 
       try {
         const wo = (currentDrawerData && currentDrawerData.wo) || {};
@@ -1935,7 +1935,9 @@
 
         let closingData = {
           woNo: currentActiveWO,
-          status: "Completed",
+          workorderCode: currentActiveWO,
+          requestCode: (targetWO && targetWO.reqNo) || (wo && (wo.reqNo || wo.requestCode)) || "",
+          status: "Pending Approval",
           closedBy: activeUser ? activeUser.displayName : "Technician",
           technicianNotes: technicianNote
         };
@@ -1952,17 +1954,20 @@
 
         const res = await CmmsApi.closeWorkOrder(closingData);
 
-        alert(`ปิดใบงาน ${currentActiveWO} เรียบร้อยแล้ว! ขอบคุณสำหรับการปฏิบัติงาน`);
+        alert(`ส่งตรวจใบงาน ${currentActiveWO} เรียบร้อยแล้ว!\nสถานะเปลี่ยนเป็น "รอหัวหน้าอนุมัติ (Pending Approval)"`);
 
         // อัปเดตข้อมูลใน local state
-        if (targetWO) targetWO.status = "Completed";
+        if (targetWO) {
+          targetWO.status = "Pending Approval";
+          targetWO.workorderStatus = "Pending Approval";
+        }
 
         renderStatsAndBadges();
         goBackToList();
         renderWorkOrdersList();
       } catch (e) {
         console.error("handleFinalCloseSubmit Error:", e);
-        alert("เกิดข้อผิดพลาดในการบันทึกปิดใบงาน กรุณาลองใหม่อีกครั้ง");
+        alert("เกิดข้อผิดพลาดในการส่งตรวจใบงาน กรุณาลองใหม่อีกครั้ง");
       } finally {
         LiffAuth.hideLoading();
       }

@@ -386,15 +386,25 @@
           </span>
         </div>
 
-        <!-- Metrics KPI Grid -->
-        <div class="stats-grid" style="grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 12px;">
+        <!-- Portal Mode Switcher (Dispatch vs Approval) -->
+        <div style="display: flex; gap: 8px; margin-bottom: 14px;">
+          <button type="button" id="btnModeDispatch" class="filter-tab-btn active" onclick="switchPortalMode('DISPATCH')" style="flex: 1; padding: 10px; border-radius: var(--radius-md); font-size: 12.5px; font-weight: 700; background: var(--primary); color: white; border: none; cursor: pointer; box-shadow: 0 2px 8px rgba(37,99,235,0.25);">
+            <i class="fa-solid fa-list-check" style="margin-right: 4px;"></i> งานรอจ่ายงาน (<span id="portalCountDispatch">0</span>)
+          </button>
+          <button type="button" id="btnModeApproval" class="filter-tab-btn" onclick="switchPortalMode('APPROVAL')" style="flex: 1; padding: 10px; border-radius: var(--radius-md); font-size: 12.5px; font-weight: 700; background: #ffffff; color: var(--text-main); border: 1.5px solid #f59e0b; cursor: pointer;">
+            <i class="fa-solid fa-stamp" style="color: #d97706; margin-right: 4px;"></i> งานรออนุมัติ (<span id="portalCountApproval">0</span>)
+          </button>
+        </div>
+
+        <!-- Metrics KPI Grid (Dispatch Mode) -->
+        <div id="dispatchMetricsGrid" class="stats-grid" style="grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 12px;">
           <div class="stat-box" style="padding: 12px;">
             <div class="stat-icon" style="background: #fef3c7; color: #b45309; width: 34px; height: 34px; font-size: 14px;">
               <i class="fa-solid fa-clock"></i>
             </div>
             <div>
               <div id="metricTotal" class="stat-value" style="font-size: 18px;">0</div>
-              <div class="stat-label" style="font-size: 10.5px;">งานค้างทั้งหมด</div>
+              <div class="stat-label" style="font-size: 10.5px;">งานรอจ่ายทั้งหมด</div>
             </div>
           </div>
 
@@ -429,8 +439,8 @@
           </div>
         </div>
 
-        <!-- Filter Tabs -->
-        <div class="filter-tabs">
+        <!-- Filter Sub-Tabs for Dispatch -->
+        <div id="dispatchSubFilterTabs" class="filter-tabs">
           <button class="filter-tab-btn active" onclick="setFilter('ALL', this)">
             ทั้งหมด (<span id="tabCountAll">0</span>)
           </button>
@@ -461,8 +471,8 @@
           <div style="width: 50px; height: 50px; border-radius: 50%; background: #ecfdf5; color: #10b981; display: flex; align-items: center; justify-content: center; font-size: 20px; margin: 0 auto 12px auto;">
             <i class="fa-solid fa-check"></i>
           </div>
-          <h4 style="font-size: 14px; font-weight: 700; color: var(--text-main); margin-bottom: 4px;">ไม่มีรายการงานค้างในขณะนี้</h4>
-          <p style="font-size: 12px; color: var(--text-muted);">ใบแจ้งซ่อมทั้งหมดได้รับการออกใบสั่งงานเรียบร้อยแล้ว</p>
+          <h4 id="emptyStateTitle" style="font-size: 14px; font-weight: 700; color: var(--text-main); margin-bottom: 4px;">ไม่มีรายการงานค้างในขณะนี้</h4>
+          <p id="emptyStateDesc" style="font-size: 12px; color: var(--text-muted);">ใบแจ้งซ่อมทั้งหมดได้รับการออกใบสั่งงานเรียบร้อยแล้ว</p>
         </div>
 
       </div>
@@ -493,6 +503,62 @@
       </a>
     </nav>
 
+  </div>
+
+  <!-- =========================================================
+       APPROVE WORK ORDER MODAL
+  ========================================================== -->
+  <div id="approveModal" class="modal-overlay">
+    <div class="modal-container" style="max-width: 440px;">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <div style="width: 32px; height: 32px; border-radius: var(--radius-sm); background: #fef3c7; color: #d97706; display: flex; align-items: center; justify-content: center; font-size: 14px;">
+            <i class="fa-solid fa-stamp"></i>
+          </div>
+          <div>
+            <div class="modal-title">อนุมัติใบสั่งงาน (Lead Approve)</div>
+            <div id="modalApproveWoLabel" style="font-size: 11px; font-family: monospace; color: #d97706; font-weight: 700;">-</div>
+          </div>
+        </div>
+        <button onclick="closeApproveModal()" style="background: none; border: none; width: 30px; height: 30px; border-radius: 50%; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center;">
+          <i class="fa-solid fa-xmark" style="font-size: 14px;"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div style="background: #f8fafc; border-radius: var(--radius-md); padding: 12px; margin-bottom: 12px; border: 1px solid var(--border-color); font-size: 12px;">
+          <div style="margin-bottom: 4px;"><strong style="color: var(--text-sub);">เครื่องจักร:</strong> <span id="approveModalAsset">-</span></div>
+          <div style="margin-bottom: 4px;"><strong style="color: var(--text-sub);">ช่างผู้ปฏิบัติงาน:</strong> <span id="approveModalAssignee">-</span></div>
+          <div style="margin-bottom: 4px;"><strong style="color: var(--text-sub);">สาเหตุ:</strong> <span id="approveModalRootCause">-</span></div>
+          <div><strong style="color: var(--text-sub);">วิธีแก้ไข:</strong> <span id="approveModalActionTaken">-</span></div>
+        </div>
+
+        <div style="margin-bottom: 14px;">
+          <label style="display: block; font-size: 11.5px; font-weight: 700; color: var(--text-main); margin-bottom: 4px;">
+            ข้อคิดเห็น / บันทึกการอนุมัติ (Optional):
+          </label>
+          <textarea
+            id="approveModalNotes"
+            rows="2"
+            placeholder="ระบุข้อคิดเห็นของหัวหน้างาน..."
+            style="width: 100%; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 8px 10px; font-size: 12px; font-family: inherit; resize: none; outline: none;"
+          ></textarea>
+        </div>
+
+        <div style="font-size: 11px; color: #15803d; background: #f0fdf4; padding: 8px 10px; border-radius: var(--radius-sm); border: 1px solid #bbf7d0;">
+          <i class="fa-solid fa-circle-info" style="margin-right: 3px;"></i> เมื่อกดอนุมัติ ใบสั่งงานจะเปลี่ยนสถานะเป็น <strong>Approved</strong> และใบแจ้งซ่อมจะเปลี่ยนเป็น <strong>Pending Acceptance</strong> เพื่อรอผู้แจ้งรับงาน
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" onclick="closeApproveModal()" style="padding: 8px 16px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: #ffffff; color: var(--text-main); font-size: 12px; font-weight: 600; cursor: pointer;">
+          ยกเลิก
+        </button>
+        <button type="button" id="btnConfirmApprove" onclick="submitModalApproval()" class="btn-assign" style="background: linear-gradient(135deg, #16a34a 0%, #15803d 100%); padding: 8px 18px;">
+          <i class="fa-solid fa-check-double"></i> ยืนยันอนุมัติงาน
+        </button>
+      </div>
+    </div>
   </div>
 
   <!-- =========================================================
@@ -604,10 +670,13 @@
 
   <script>
     let rawPendingTasks = [];
+    let rawPendingApprovals = [];
+    let currentPortalMode = 'DISPATCH'; // 'DISPATCH' | 'APPROVAL'
     let activeFilter = 'ALL';
     let currentAssigneeType = 'INTERNAL';
     let cachedAssignees = { technicians: [], vendors: [] };
     let activeRequestCode = null;
+    let activeApprovalWo = null;
     let currentManager = null;
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -670,7 +739,48 @@
     }
 
     /**
-     * 2. ดึงรายการงานค้าง (Pending Requests)
+     * Switch Portal Mode between DISPATCH and APPROVAL
+     */
+    function switchPortalMode(mode) {
+      currentPortalMode = mode;
+      const btnDisp = document.getElementById('btnModeDispatch');
+      const btnAppr = document.getElementById('btnModeApproval');
+      const metricsGrid = document.getElementById('dispatchMetricsGrid');
+      const subTabs = document.getElementById('dispatchSubFilterTabs');
+
+      if (mode === 'DISPATCH') {
+        btnDisp.style.background = 'var(--primary)';
+        btnDisp.style.color = '#ffffff';
+        btnDisp.style.border = 'none';
+        btnDisp.style.boxShadow = '0 2px 8px rgba(37,99,235,0.25)';
+
+        btnAppr.style.background = '#ffffff';
+        btnAppr.style.color = 'var(--text-main)';
+        btnAppr.style.border = '1.5px solid #f59e0b';
+        btnAppr.style.boxShadow = 'none';
+
+        metricsGrid.style.display = 'grid';
+        subTabs.style.display = 'flex';
+        renderPendingCards();
+      } else {
+        btnAppr.style.background = '#d97706';
+        btnAppr.style.color = '#ffffff';
+        btnAppr.style.border = 'none';
+        btnAppr.style.boxShadow = '0 2px 8px rgba(217,119,6,0.25)';
+
+        btnDisp.style.background = '#ffffff';
+        btnDisp.style.color = 'var(--text-main)';
+        btnDisp.style.border = '1.5px solid var(--border-color)';
+        btnDisp.style.boxShadow = 'none';
+
+        metricsGrid.style.display = 'none';
+        subTabs.style.display = 'none';
+        renderApprovalCards();
+      }
+    }
+
+    /**
+     * 2. ดึงรายการงานค้าง (Pending Requests & Pending Approvals)
      */
     async function loadPendingTasks() {
       const container = document.getElementById('pendingListContainer');
@@ -680,11 +790,22 @@
 
       try {
         const res = await CmmsApi.getPendingRequests();
-        const items = (res && res.data) ? res.data : (Array.isArray(res) ? res : []);
+        const items = (res && res.pendingRequests) ? res.pendingRequests : ((res && res.data) ? res.data : (Array.isArray(res) ? res : []));
+        const approvals = (res && res.pendingApprovals) ? res.pendingApprovals : [];
+
         rawPendingTasks = items;
+        rawPendingApprovals = approvals;
+
+        document.getElementById('portalCountDispatch').innerText = items.length;
+        document.getElementById('portalCountApproval').innerText = approvals.length;
 
         updateMetrics(items);
-        renderPendingCards();
+
+        if (currentPortalMode === 'DISPATCH') {
+          renderPendingCards();
+        } else {
+          renderApprovalCards();
+        }
       } catch (err) {
         console.error('loadPendingTasks error:', err);
         container.innerHTML = `<div style="padding: 16px; background: #fef2f2; border: 1px solid #fecaca; border-radius: var(--radius-md); text-align: center; font-size: 12px; color: #dc2626;">เกิดข้อผิดพลาดในการโหลดข้อมูล: ${escapeHtml(err.message || String(err))}</div>`;
@@ -726,7 +847,11 @@
     function handleSearch() {
       const val = document.getElementById('searchInput').value;
       document.getElementById('clearSearchBtn').style.display = val.trim() ? 'block' : 'none';
-      renderPendingCards();
+      if (currentPortalMode === 'DISPATCH') {
+        renderPendingCards();
+      } else {
+        renderApprovalCards();
+      }
     }
 
     function clearSearchInput() {
@@ -735,7 +860,7 @@
     }
 
     /**
-     * 5. Render Cards
+     * 5. Render Cards (Dispatch Mode)
      */
     function renderPendingCards() {
       const container = document.getElementById('pendingListContainer');
@@ -763,6 +888,8 @@
 
       if (filtered.length === 0) {
         container.innerHTML = '';
+        document.getElementById('emptyStateTitle').innerText = 'ไม่มีรายการงานค้างในขณะนี้';
+        document.getElementById('emptyStateDesc').innerText = 'ใบแจ้งซ่อมทั้งหมดได้รับการออกใบสั่งงานเรียบร้อยแล้ว';
         empty.style.display = 'block';
         return;
       }
@@ -844,7 +971,179 @@
     }
 
     /**
-     * 6. Assign Modal
+     * 6. Render Approval Cards (Pending Approval Mode)
+     */
+    function renderApprovalCards() {
+      const container = document.getElementById('pendingListContainer');
+      const empty = document.getElementById('emptyState');
+      const q = (document.getElementById('searchInput').value || '').toLowerCase().trim();
+
+      let filtered = rawPendingApprovals;
+
+      if (q) {
+        filtered = filtered.filter(item => {
+          const wo = String(item.workorderCode || item.woNo || '').toLowerCase();
+          const req = String(item.requestCode || '').toLowerCase();
+          const asset = String(item.assetCode || '').toLowerCase();
+          const mName = String(item.machineName || '').toLowerCase();
+          const assignee = String(item.assignee || '').toLowerCase();
+          const action = String(item.actionTaken || '').toLowerCase();
+          return wo.includes(q) || req.includes(q) || asset.includes(q) || mName.includes(q) || assignee.includes(q) || action.includes(q);
+        });
+      }
+
+      if (filtered.length === 0) {
+        container.innerHTML = '';
+        document.getElementById('emptyStateTitle').innerText = 'ไม่มีงานรอหัวหน้าอนุมัติ';
+        document.getElementById('emptyStateDesc').innerText = 'ช่างยังไม่มีงานที่ปิดรอการตรวจสอบในขณะนี้';
+        empty.style.display = 'block';
+        return;
+      }
+
+      empty.style.display = 'none';
+
+      container.innerHTML = filtered.map(item => {
+        const woCode = escapeHtml(item.workorderCode || item.woNo || '-');
+        const reqCode = escapeHtml(item.requestCode || '-');
+        const assetCode = escapeHtml(item.assetCode || '-');
+        const machineName = escapeHtml(item.machineName || '-');
+        const assignee = escapeHtml(item.assignee || '-');
+        const rootCause = escapeHtml(item.rootCause || '-');
+        const actionTaken = escapeHtml(item.actionTaken || '-');
+        const completedAt = escapeHtml(item.completedAt || '-');
+        const workTime = item.workingTime ? `${item.workingTime} นาที` : '-';
+        const downTime = item.downTime ? `${item.downTime} นาที` : '-';
+
+        const hasBeforeImg = item.imageBefore && item.imageBefore.length > 5;
+        const hasResultImg = item.imageResult && item.imageResult.length > 5;
+
+        return `
+          <div class="pending-card" style="border-left: 4px solid #f59e0b;">
+            <div class="card-top-row">
+              <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                <span class="req-code" style="background: #fffbeb; color: #b45309; border-color: #fde68a;">
+                  <i class="fa-solid fa-clipboard-check" style="margin-right: 3px;"></i>${woCode}
+                </span>
+                <span style="font-size: 11px; color: var(--text-muted);">คำขอ: ${reqCode}</span>
+                <span style="font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; background: #fef3c7; color: #d97706;">
+                  รอหัวหน้าอนุมัติ
+                </span>
+              </div>
+              <span style="font-size: 11px; color: var(--text-muted);">
+                <i class="fa-regular fa-clock" style="margin-right: 2px;"></i> ${completedAt}
+              </span>
+            </div>
+
+            <div>
+              <div class="info-row">
+                <i class="fa-solid fa-industry info-icon"></i>
+                <div>
+                  <strong style="color: var(--text-main);">${machineName}</strong>
+                  <span style="font-family: monospace; font-size: 11.5px; color: var(--text-muted); margin-left: 4px;">(${assetCode})</span>
+                </div>
+              </div>
+              <div class="info-row" style="color: #475569;">
+                <i class="fa-solid fa-user-gear info-icon" style="color: #2563eb;"></i>
+                <span>ช่างผู้รับผิดชอบ: <strong>${assignee}</strong></span>
+              </div>
+            </div>
+
+            <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 10px; margin-bottom: 10px; font-size: 12px;">
+              <div style="margin-bottom: 4px;"><strong style="color: var(--text-sub);">สาเหตุ:</strong> ${rootCause}</div>
+              <div style="margin-bottom: 6px;"><strong style="color: var(--text-sub);">วิธีแก้ไข:</strong> ${actionTaken}</div>
+              <div style="display: flex; gap: 12px; font-size: 11px; color: var(--text-muted);">
+                <span><i class="fa-solid fa-stopwatch" style="margin-right: 3px;"></i> เวลาซ่อม: ${workTime}</span>
+                <span><i class="fa-solid fa-ban" style="margin-right: 3px;"></i> Downtime: ${downTime}</span>
+              </div>
+            </div>
+
+            ${(hasBeforeImg || hasResultImg) ? `
+              <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+                ${hasBeforeImg ? `
+                  <div style="flex: 1;">
+                    <span style="font-size: 10px; color: var(--text-muted); display: block; margin-bottom: 2px;">ภาพก่อนซ่อม</span>
+                    <img src="${escapeHtml(item.imageBefore)}" alt="Before" style="width: 100%; height: 70px; object-fit: cover; border-radius: 6px; border: 1px solid #cbd5e1; cursor: pointer;" onclick="openImagePreview('${escapeHtml(item.imageBefore)}')" />
+                  </div>
+                ` : ''}
+                ${hasResultImg ? `
+                  <div style="flex: 1;">
+                    <span style="font-size: 10px; color: var(--text-muted); display: block; margin-bottom: 2px;">ภาพหลังซ่อม</span>
+                    <img src="${escapeHtml(item.imageResult)}" alt="Result" style="width: 100%; height: 70px; object-fit: cover; border-radius: 6px; border: 1px solid #cbd5e1; cursor: pointer;" onclick="openImagePreview('${escapeHtml(item.imageResult)}')" />
+                  </div>
+                ` : ''}
+              </div>
+            ` : ''}
+
+            <div class="card-footer" style="justify-content: flex-end;">
+              <button type="button" onclick='openApproveModal(${JSON.stringify(item)})' class="btn-assign" style="background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);">
+                <i class="fa-solid fa-stamp"></i> ตรวจสอบ & อนุมัติ (Approve)
+              </button>
+            </div>
+
+          </div>`;
+      }).join('');
+    }
+
+    /**
+     * 7. Approve Modal Handlers
+     */
+    function openApproveModal(item) {
+      if (!item) return;
+      activeApprovalWo = item;
+
+      const woCode = item.workorderCode || item.woNo || '-';
+      document.getElementById('modalApproveWoLabel').innerText = `ใบสั่งงาน: ${woCode} (คำขอ: ${item.requestCode || '-'})`;
+      document.getElementById('approveModalAsset').innerText = `${item.machineName || '-'} (${item.assetCode || '-'})`;
+      document.getElementById('approveModalAssignee').innerText = item.assignee || '-';
+      document.getElementById('approveModalRootCause').innerText = item.rootCause || '-';
+      document.getElementById('approveModalActionTaken').innerText = item.actionTaken || '-';
+      document.getElementById('approveModalNotes').value = '';
+
+      document.getElementById('approveModal').style.display = 'flex';
+    }
+
+    function closeApproveModal() {
+      document.getElementById('approveModal').style.display = 'none';
+      activeApprovalWo = null;
+    }
+
+    async function submitModalApproval() {
+      if (!activeApprovalWo) return;
+
+      const woNo = activeApprovalWo.workorderCode || activeApprovalWo.woNo;
+      const notes = document.getElementById('approveModalNotes').value.trim();
+      const approvedBy = (currentManager && (currentManager.displayName || currentManager.name || currentManager.userName)) || 'Manager Lead';
+
+      const btn = document.getElementById('btnConfirmApprove');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> กำลังอนุมัติ...';
+
+      try {
+        const payload = {
+          woNo: woNo,
+          workorderCode: woNo,
+          requestCode: activeApprovalWo.requestCode || '',
+          approvedBy: approvedBy,
+          notes: notes
+        };
+
+        const res = await CmmsApi.approveWorkOrder(payload);
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-check-double"></i> ยืนยันอนุมัติงาน';
+
+        alert(`อนุมัติใบสั่งงาน ${woNo} เรียบร้อยแล้ว!\nระบบได้ส่งต่องานไปยังผู้แจ้งเพื่อตรวจรับงาน (Pending Acceptance) เรียบร้อย`);
+        closeApproveModal();
+        loadPendingTasks();
+      } catch (err) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-check-double"></i> ยืนยันอนุมัติงาน';
+        console.error('submitModalApproval Error:', err);
+        alert('เกิดข้อผิดพลาดในการอนุมัติ: ' + (err.message || String(err)));
+      }
+    }
+
+    /**
+     * 8. Assign Modal Handlers
      */
     async function openAssignModal(requestCode, reqType) {
       activeRequestCode = requestCode;
@@ -1006,7 +1305,7 @@
     }
 
     /**
-     * 7. Image Zoom Preview
+     * 9. Image Zoom Preview
      */
     function openImagePreview(url) {
       if (!url) return;

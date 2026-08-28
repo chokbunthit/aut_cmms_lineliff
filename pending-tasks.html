@@ -703,8 +703,28 @@
         const roleRes = await CmmsApi.checkManagerRole(user.userId);
         LiffAuth.hideLoading();
 
-        if (roleRes && (roleRes.isManager || (roleRes.role && roleRes.role.toLowerCase() === 'manager') || (roleRes.role && roleRes.role.toLowerCase() === 'admin'))) {
-          currentManager = roleRes.user || user;
+        let isManager = false;
+        if (roleRes && roleRes.success) {
+          const r = String(roleRes.role || (roleRes.user && roleRes.user.role) || '').toLowerCase();
+          if (roleRes.isManager || r === 'manager' || r === 'admin' || r === 'supervisor' || r === 'lead' || r.includes('ผู้จัดการ') || r.includes('หัวหน้า') || r.includes('mgr')) {
+            isManager = true;
+          }
+        }
+        if (!isManager) {
+          try {
+            const cached = localStorage.getItem(`cmms_user_sheet_${user.userId}`);
+            if (cached) {
+              const cp = JSON.parse(cached);
+              const cr = String(cp.access_rights || cp.role || '').toLowerCase();
+              if (cr === 'manager' || cr === 'admin' || cr === 'supervisor' || cr.includes('ผู้จัดการ') || cr.includes('หัวหน้า')) {
+                isManager = true;
+              }
+            }
+          } catch(e) {}
+        }
+
+        if (isManager) {
+          currentManager = (roleRes && roleRes.user) || user;
           setupManagerUI(currentManager);
           document.getElementById('managerView').style.display = 'block';
 
@@ -717,7 +737,7 @@
 
           loadPendingTasks();
         } else {
-          const msg = roleRes.message || 'ขออภัย คุณไม่มีสิทธิ์เข้าถึงหน้ารายการงานค้าง (เฉพาะตำแหน่ง Manager เท่านั้น)';
+          const msg = (roleRes && roleRes.message) || 'ขออภัย คุณไม่มีสิทธิ์เข้าถึงหน้ารายการงานค้าง (เฉพาะตำแหน่ง Manager เท่านั้น)';
           showAccessDenied(msg);
         }
       } catch (err) {

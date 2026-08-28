@@ -356,11 +356,34 @@
       const actionGrid = document.getElementById("actionGrid");
 
       try {
-        // ตรวจสอบ Role จาก Sheet Users
+        let isManager = false;
+        let isTech = false;
+        let sheetProfile = {};
+        if (user.userId) {
+          try {
+            const cached = localStorage.getItem(`cmms_user_sheet_${user.userId}`);
+            if (cached) sheetProfile = JSON.parse(cached);
+          } catch (e) { }
+        }
+        const cachedRole = String(sheetProfile.access_rights || sheetProfile.role || "").toLowerCase();
+        if (cachedRole === "manager" || cachedRole === "admin" || cachedRole === "supervisor" || cachedRole === "lead" || cachedRole.includes("ผู้จัดการ") || cachedRole.includes("หัวหน้า") || cachedRole.includes("mgr")) {
+          isManager = true;
+          isTech = true;
+        } else if (cachedRole.includes("tech")) {
+          isTech = true;
+        }
+
+        // ตรวจสอบกับ Server (Sheet Users)
         const roleRes = await CmmsApi.checkManagerRole(user.userId);
-        const role = String((roleRes && roleRes.role) || (user.access_rights) || (user.accessRights) || "user").toLowerCase();
-        const isManager = Boolean(roleRes && (roleRes.isManager || role === "manager" || role === "admin" || role === "supervisor"));
-        const isTech = Boolean(role.includes("tech") || isManager);
+        if (roleRes && roleRes.success) {
+          const role = String(roleRes.role || (roleRes.user && roleRes.user.role) || "").toLowerCase();
+          if (roleRes.isManager || role === "manager" || role === "admin" || role === "supervisor" || role === "lead" || role.includes("ผู้จัดการ") || role.includes("หัวหน้า") || role.includes("mgr")) {
+            isManager = true;
+            isTech = true;
+          } else if (role.includes("tech")) {
+            isTech = true;
+          }
+        }
 
         if (isManager) {
           // --- Role: Manager / Admin ---

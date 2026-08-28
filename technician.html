@@ -927,11 +927,34 @@
 
     /**
      * ดึงข้อมูลงานที่ได้รับมอบหมายจาก GAS / API
+     * หากผู้ใช้งานเป็น Manager / Admin จะสามารถดูและจัดการงานช่างได้ทั้งหมด
      */
     async function fetchTechnicianWork() {
-      const userName = activeUser ? (activeUser.displayName || activeUser.userId) : "";
+      let isManager = false;
+      let sheetProfile = {};
+      if (activeUser && activeUser.userId) {
+        try {
+          const cached = localStorage.getItem(`cmms_user_sheet_${activeUser.userId}`);
+          if (cached) sheetProfile = JSON.parse(cached);
+        } catch (e) { }
+      }
+      const roleStr = String(sheetProfile.access_rights || sheetProfile.role || (activeUser && activeUser.role) || "").toLowerCase();
+      if (roleStr === "manager" || roleStr === "admin" || roleStr === "supervisor" || roleStr.includes("ผู้จัดการ") || roleStr.includes("หัวหน้า")) {
+        isManager = true;
+      }
+      if (!isManager && activeUser && activeUser.userId) {
+        try {
+          const roleRes = await CmmsApi.checkManagerRole(activeUser.userId);
+          if (roleRes && (roleRes.isManager || String(roleRes.role || "").toLowerCase() === "manager" || String(roleRes.role || "").toLowerCase() === "admin")) {
+            isManager = true;
+          }
+        } catch (e) { }
+      }
+
+      const queryName = isManager ? "all" : (activeUser ? (activeUser.displayName || activeUser.userId) : "all");
+
       try {
-        const res = await CmmsApi.getMyWorkData(userName);
+        const res = await CmmsApi.getMyWorkData(queryName);
         let items = [];
         if (res && res.status === "success" && Array.isArray(res.data)) {
           items = res.data;

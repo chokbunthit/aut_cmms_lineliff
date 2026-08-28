@@ -732,7 +732,7 @@
           const urlParams = new URLSearchParams(window.location.search);
           const targetTab = (urlParams.get('tab') || '').toLowerCase();
           if (targetTab === 'approvals' || targetTab === 'approval' || targetTab === 'approve') {
-            switchTab('APPROVAL');
+            switchPortalMode('APPROVAL');
           }
 
           loadPendingTasks();
@@ -764,6 +764,10 @@
       document.getElementById('accessDeniedMsg').innerText = msg;
       document.getElementById('accessDeniedView').style.display = 'block';
       document.getElementById('managerView').style.display = 'none';
+    }
+
+    function switchTab(mode) {
+      switchPortalMode(mode);
     }
 
     /**

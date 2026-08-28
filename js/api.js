@@ -20,32 +20,47 @@ const CmmsApi = (function () {
 
   /**
    * ฟังก์ชันเรียก API กลางไปยัง Google Apps Script
-   * รองรับ CORS POST แบบ text/plain ตามมาตรฐานของ GAS Web App
+   * รองรับ CORS POST แบบ text/plain ตามมาตรฐานของ GAS Web App พร้อม Fallback
    */
   async function request(action, payload = {}, method = "POST") {
     try {
       let url = baseUrl;
-      let options = {};
+      let options = {
+        redirect: "follow"
+      };
 
       if (method.toUpperCase() === "GET") {
         const params = new URLSearchParams({ action, ...payload });
         url = `${baseUrl}?${params.toString()}`;
-        options = { method: "GET" };
+        options.method = "GET";
       } else {
         const bodyData = {
           action: action,
           ...payload
         };
-        options = {
-          method: "POST",
-          headers: {
-            "Content-Type": "text/plain;charset=utf-8"
-          },
-          body: JSON.stringify(bodyData)
+        options.method = "POST";
+        options.headers = {
+          "Content-Type": "text/plain;charset=utf-8"
         };
+        options.body = JSON.stringify(bodyData);
       }
 
-      const response = await fetch(url, options);
+      let response;
+      try {
+        response = await fetch(url, options);
+      } catch (fetchErr) {
+        // Fallback: หาก POST ติดปัญหา Network / Connection Closed ให้ลองส่งผ่าน GET (เฉพาะกรณีไม่มีรูปภาพขนาดใหญ่)
+        const hasLargeData = payload.image || payload.photoBefore || payload.photoAfter || payload.image_before || payload.image_result;
+        if (method.toUpperCase() === "POST" && !hasLargeData) {
+          console.warn(`POST to ${action} failed (${fetchErr.message}), attempting GET fallback...`);
+          const getParams = new URLSearchParams({ action, ...payload });
+          const fallbackUrl = `${baseUrl}?${getParams.toString()}`;
+          response = await fetch(fallbackUrl, { method: "GET", redirect: "follow" });
+        } else {
+          throw fetchErr;
+        }
+      }
+
       if (!response.ok) {
         throw new Error(`Server returned HTTP ${response.status}: ${response.statusText}`);
       }
@@ -641,14 +656,7 @@ const CmmsApi = (function () {
       return await request("approveWorkOrder", payload, "POST");
     } catch (err) {
       console.error("approveWorkOrder Error:", err);
-      return {
-        status: "success",
-        message: "อนุมัติใบงานสำเร็จ (Local Mock)",
-        state: {
-          workorderStatus: "Approved",
-          requestStatus: "Pending Acceptance"
-        }
-      };
+      throw err;
     }
   }
 
@@ -660,14 +668,7 @@ const CmmsApi = (function () {
       return await request("acceptRequest", payload, "POST");
     } catch (err) {
       console.error("acceptRequest Error:", err);
-      return {
-        status: "success",
-        message: "รับงานและประเมินผลสำเร็จ (Local Mock)",
-        state: {
-          requestStatus: "Closed",
-          workorderStatus: "Closed"
-        }
-      };
+      throw err;
     }
   }
 

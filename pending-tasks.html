@@ -1000,9 +1000,9 @@
         return;
       }
 
-      empty.style.display = 'none';
+      window._pendingApprovalsData = filtered;
 
-      container.innerHTML = filtered.map(item => {
+      container.innerHTML = filtered.map((item, idx) => {
         const woCode = escapeHtml(item.workorderCode || item.woNo || '-');
         const reqCode = escapeHtml(item.requestCode || '-');
         const assetCode = escapeHtml(item.assetCode || '-');
@@ -1075,7 +1075,7 @@
             ` : ''}
 
             <div class="card-footer" style="justify-content: flex-end;">
-              <button type="button" onclick='openApproveModal(${JSON.stringify(item)})' class="btn-assign" style="background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);">
+              <button type="button" onclick="openApproveModalByIndex(${idx})" class="btn-assign" style="background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);">
                 <i class="fa-solid fa-stamp"></i> ตรวจสอบ & อนุมัติ (Approve)
               </button>
             </div>
@@ -1087,6 +1087,11 @@
     /**
      * 7. Approve Modal Handlers
      */
+    function openApproveModalByIndex(idx) {
+      if (!window._pendingApprovalsData || !window._pendingApprovalsData[idx]) return;
+      openApproveModal(window._pendingApprovalsData[idx]);
+    }
+
     function openApproveModal(item) {
       if (!item) return;
       activeApprovalWo = item;
@@ -1130,6 +1135,10 @@
         const res = await CmmsApi.approveWorkOrder(payload);
         btn.disabled = false;
         btn.innerHTML = '<i class="fa-solid fa-check-double"></i> ยืนยันอนุมัติงาน';
+
+        if (res && res.status === "error") {
+          throw new Error(res.message || "ไม่สามารถอนุมัติใบสั่งงานได้");
+        }
 
         alert(`อนุมัติใบสั่งงาน ${woNo} เรียบร้อยแล้ว!\nระบบได้ส่งต่องานไปยังผู้แจ้งเพื่อตรวจรับงาน (Pending Acceptance) เรียบร้อย`);
         closeApproveModal();

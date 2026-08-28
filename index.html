@@ -85,8 +85,29 @@
         </div>
       </div>
 
-      <!-- MT Technician Quick Access Banner (สำหรับช่างซ่อมบำรุง) -->
-      <a href="technician.html" style="text-decoration: none; display: block; margin-bottom: 14px;">
+      <!-- Manager Quick Access Banner (สำหรับ Manager / Admin แสดงเมื่อมีสิทธิ์) -->
+      <a id="managerBanner" href="pending-tasks.html?tab=approvals" style="text-decoration: none; display: none; margin-bottom: 14px;">
+        <div style="background: linear-gradient(135deg, #1e1b4b 0%, #4338ca 100%); border-radius: var(--radius-lg); padding: 12px 14px; color: white; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 14px rgba(67, 56, 202, 0.25);">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="width: 38px; height: 38px; border-radius: var(--radius-md); background: rgba(255,255,255,0.18); display: flex; align-items: center; justify-content: center; font-size: 17px; color: #a5b4fc;">
+              <i class="fa-solid fa-stamp"></i>
+            </div>
+            <div>
+              <div style="font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 6px;">
+                <span>เมนูหัวหน้างาน (Manager Dispatch)</span>
+                <span id="managerPendingBadge" style="background: #f59e0b; color: #78350f; font-size: 9.5px; padding: 1px 6px; border-radius: 10px; font-weight: 800;">0 รออนุมัติ</span>
+              </div>
+              <div id="managerBannerSubtext" style="font-size: 11px; opacity: 0.85;">ตรวจสอบงานซ่อมที่เสร็จสิ้น และมอบหมายงานค้าง</div>
+            </div>
+          </div>
+          <div style="background: rgba(255,255,255,0.2); width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px;">
+            <i class="fa-solid fa-chevron-right"></i>
+          </div>
+        </div>
+      </a>
+
+      <!-- MT Technician Quick Access Banner (สำหรับช่างซ่อมบำรุง / Manager) -->
+      <a id="technicianBanner" href="technician.html" style="text-decoration: none; display: none; margin-bottom: 14px;">
         <div style="background: linear-gradient(135deg, #0f172a 0%, #0369a1 100%); border-radius: var(--radius-lg); padding: 12px 14px; color: white; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 14px rgba(3, 105, 161, 0.25);">
           <div style="display: flex; align-items: center; gap: 12px;">
             <div style="width: 38px; height: 38px; border-radius: var(--radius-md); background: rgba(255,255,255,0.18); display: flex; align-items: center; justify-content: center; font-size: 17px; color: #38bdf8;">
@@ -107,35 +128,36 @@
       </a>
 
       <!-- Quick Action Grid -->
-      <div class="action-grid" style="grid-template-columns: repeat(5, 1fr);">
-        <a href="create-ticket.html" class="action-btn">
+      <div id="actionGrid" class="action-grid" style="grid-template-columns: repeat(3, 1fr);">
+        <a id="btnNewTicket" href="create-ticket.html" class="action-btn">
           <div class="action-btn-icon" style="background: #eff6ff; color: #2563eb;">
             <i class="fa-solid fa-paper-plane"></i>
           </div>
           <span class="action-btn-label">แจ้งซ่อมใหม่</span>
         </a>
 
-        <a href="pending-tasks.html" class="action-btn">
+        <a id="btnPendingTasks" href="pending-tasks.html" class="action-btn" style="display: none;">
           <div class="action-btn-icon" style="background: #fef3c7; color: #b45309;">
             <i class="fa-solid fa-clipboard-list"></i>
           </div>
           <span class="action-btn-label">งานค้าง (Mgr)</span>
         </a>
-        <a href="technician.html" class="action-btn">
+
+        <a id="btnTechTasks" href="technician.html" class="action-btn" style="display: none;">
           <div class="action-btn-icon" style="background: #e0f2fe; color: #0284c7;">
             <i class="fa-solid fa-toolbox"></i>
           </div>
           <span class="action-btn-label">งานช่าง MT</span>
         </a>
 
-        <a href="tracking.html" class="action-btn">
+        <a id="btnTracking" href="tracking.html" class="action-btn">
           <div class="action-btn-icon" style="background: #fefce8; color: #ca8a04;">
             <i class="fa-solid fa-list-check"></i>
           </div>
           <span class="action-btn-label">ติดตามสถานะ</span>
         </a>
 
-        <button onclick="scanQRToTicket()" class="action-btn" style="border: 1px solid var(--border-color); cursor: pointer; width: 100%;">
+        <button id="btnScanQR" onclick="scanQRToTicket()" class="action-btn" style="border: 1px solid var(--border-color); cursor: pointer; width: 100%;">
           <div class="action-btn-icon" style="background: #fdf4ff; color: #c026d3;">
             <i class="fa-solid fa-qrcode"></i>
           </div>
@@ -275,8 +297,13 @@
           requiredAuth: false,
           onReady: (user) => {
             renderUserProfile(user);
+            setupRolePermissions(user);
           }
         });
+
+        if (activeUser) {
+          setupRolePermissions(activeUser);
+        }
 
         await loadDashboardData();
       } catch (err) {
@@ -309,6 +336,86 @@
       if (avatarEl && avatarUrl) avatarEl.src = avatarUrl;
       if (deptEl) {
         deptEl.innerHTML = `<i class="fa-solid fa-building-user" style="margin-right: 4px;"></i>${deptCode ? `แผนก ${deptCode}` : "CMMS Member"}`;
+      }
+    }
+
+    /**
+     * กำหนดการแสดงผลเมนูและแบนเนอร์ตาม Role ของผู้ใช้งาน
+     * - User ทั่วไป: แสดง 3 ปุ่ม (แจ้งซ่อม, ติดตามสถานะ, สแกน QR) | ซ่อนงานค้าง Mgr และงานช่าง MT
+     * - Technician: แสดง 4 ปุ่ม (แจ้งซ่อม, งานช่าง MT, ติดตามสถานะ, สแกน QR) | แสดงแบนเนอร์ช่าง | ซ่อนงานค้าง Mgr
+     * - Manager/Admin: แสดง 4 ปุ่ม (แจ้งซ่อม, งานค้าง Mgr, งานช่าง MT, ติดตามสถานะ) | แสดงแบนเนอร์ Mgr (นับงานรออนุมัติ) | ซ่อนสแกน QR
+     */
+    async function setupRolePermissions(user) {
+      if (!user || !user.userId) return;
+
+      const mgrBanner = document.getElementById("managerBanner");
+      const techBanner = document.getElementById("technicianBanner");
+      const btnPending = document.getElementById("btnPendingTasks");
+      const btnTech = document.getElementById("btnTechTasks");
+      const btnScan = document.getElementById("btnScanQR");
+      const actionGrid = document.getElementById("actionGrid");
+
+      try {
+        // ตรวจสอบ Role จาก Sheet Users
+        const roleRes = await CmmsApi.checkManagerRole(user.userId);
+        const role = String((roleRes && roleRes.role) || (user.access_rights) || (user.accessRights) || "user").toLowerCase();
+        const isManager = Boolean(roleRes && (roleRes.isManager || role === "manager" || role === "admin" || role === "supervisor"));
+        const isTech = Boolean(role.includes("tech") || isManager);
+
+        if (isManager) {
+          // --- Role: Manager / Admin ---
+          if (mgrBanner) mgrBanner.style.display = "block";
+          if (techBanner) techBanner.style.display = "block";
+          if (btnPending) btnPending.style.display = "flex";
+          if (btnTech) btnTech.style.display = "flex";
+          if (btnScan) btnScan.style.display = "none"; // ซ่อนสแกน QR สำหรับ Manager
+
+          if (actionGrid) actionGrid.style.gridTemplateColumns = "repeat(4, 1fr)";
+
+          // ดึงจำนวนงานรออนุมัติมาแสดงบนการ์ดของ Manager
+          try {
+            const pendingData = await CmmsApi.getPendingRequests();
+            const apprCount = pendingData.pendingApprovalCount || (pendingData.pendingApprovals ? pendingData.pendingApprovals.length : 0);
+            const reqCount = (pendingData.pendingRequests ? pendingData.pendingRequests.length : 0);
+
+            const badgeEl = document.getElementById("managerPendingBadge");
+            const subtextEl = document.getElementById("managerBannerSubtext");
+            if (badgeEl) {
+              badgeEl.innerText = `${apprCount} รออนุมัติ`;
+              badgeEl.style.background = apprCount > 0 ? "#ef4444" : "#10b981";
+              badgeEl.style.color = "#ffffff";
+            }
+            if (subtextEl) {
+              subtextEl.innerText = apprCount > 0 
+                ? `มี ${apprCount} งานซ่อมรอหัวหน้าอนุมัติ (และ ${reqCount} งานรอมอบหมาย)`
+                : `มี ${reqCount} งานแจ้งซ่อมใหม่ที่ยังไม่ได้จ่ายงาน`;
+            }
+          } catch (e) {
+            console.warn("Could not load manager pending counts:", e);
+          }
+
+        } else if (isTech) {
+          // --- Role: Technician ---
+          if (mgrBanner) mgrBanner.style.display = "none";
+          if (techBanner) techBanner.style.display = "block";
+          if (btnPending) btnPending.style.display = "none"; // ซ่อนงานค้าง Mgr
+          if (btnTech) btnTech.style.display = "flex";       // แสดงงานช่าง MT
+          if (btnScan) btnScan.style.display = "flex";       // แสดงสแกน QR
+
+          if (actionGrid) actionGrid.style.gridTemplateColumns = "repeat(4, 1fr)";
+
+        } else {
+          // --- Role: User ทั่วไป (Requester) ---
+          if (mgrBanner) mgrBanner.style.display = "none";
+          if (techBanner) techBanner.style.display = "none"; // ซ่อนแบนเนอร์ช่าง MT
+          if (btnPending) btnPending.style.display = "none"; // ซ่อนงานค้าง Mgr
+          if (btnTech) btnTech.style.display = "none";       // ซ่อนงานช่าง MT
+          if (btnScan) btnScan.style.display = "flex";       // แสดงสแกน QR
+
+          if (actionGrid) actionGrid.style.gridTemplateColumns = "repeat(3, 1fr)";
+        }
+      } catch (err) {
+        console.error("setupRolePermissions error:", err);
       }
     }
 

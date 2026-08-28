@@ -707,6 +707,14 @@
           currentManager = roleRes.user || user;
           setupManagerUI(currentManager);
           document.getElementById('managerView').style.display = 'block';
+
+          // ตรวจสอบ URL query parameter เพื่อสลับแท็บอัตโนมัติ (เช่น มาจากแบนเนอร์ ?tab=approvals)
+          const urlParams = new URLSearchParams(window.location.search);
+          const targetTab = (urlParams.get('tab') || '').toLowerCase();
+          if (targetTab === 'approvals' || targetTab === 'approval' || targetTab === 'approve') {
+            switchTab('APPROVAL');
+          }
+
           loadPendingTasks();
         } else {
           const msg = roleRes.message || 'ขออภัย คุณไม่มีสิทธิ์เข้าถึงหน้ารายการงานค้าง (เฉพาะตำแหน่ง Manager เท่านั้น)';

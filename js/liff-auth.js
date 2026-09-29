@@ -7,6 +7,8 @@
 const LiffAuth = (function () {
   // Config: กำหนด LIFF ID กลางของระบบ (ตรงกับที่ตั้งค่าใน Rich Menu)
   const DEFAULT_LIFF_ID = "2011076529-EKhCiseU";
+  //const DEFAULT_LIFF_ID = "2011050588-FTDVMv4L";
+  
   const STORAGE_KEY = "cmms_user_session";
 
   let currentUser = null;
@@ -43,6 +45,13 @@ const LiffAuth = (function () {
   }
 
   /**
+   * ตรวจสอบว่าเปิดใช้งานผ่าน LINE App หรือไม่
+   */
+  function isInLiff() {
+    return typeof liff !== "undefined" && liff.isInClient && liff.isInClient();
+  }
+
+  /**
    * ดึงข้อมูล User จาก LocalStorage
    */
   function getCachedUser() {
@@ -73,12 +82,50 @@ const LiffAuth = (function () {
   }
 
   /**
+   * บันทึกการเข้าสู่ระบบผ่าน Username/Password
+   */
+  function loginWithCredentials(userData) {
+    currentUser = {
+      userId: userData.userId || userData.line_user_id || userData.id || userData.username,
+      displayName: userData.displayName || userData.name || userData.username,
+      name: userData.name || userData.displayName || userData.username,
+      pictureUrl: userData.pictureUrl || "",
+      isLoggedIn: true,
+      authSource: "credentials",
+      role: userData.role || userData.accessRights || "user",
+      accessRights: userData.accessRights || userData.role || "user",
+      deptCode: userData.deptCode || userData.dept_code || "",
+      empCode: userData.empCode || userData.emp_code || "",
+      username: userData.username || ""
+    };
+    saveUser(currentUser);
+    try {
+      localStorage.setItem(`cmms_user_sheet_${currentUser.userId}`, JSON.stringify(currentUser));
+    } catch (e) {}
+    return currentUser;
+  }
+
+  /**
    * เริ่มต้นระบบ LIFF และดึง User Profile
    * @param {Object} options - { liffId, requiredAuth: true/false, onReady: Function }
    */
   async function init(options = {}) {
     const liffId = options.liffId || DEFAULT_LIFF_ID;
     const requiredAuth = options.requiredAuth !== false; // default true
+
+    // ตรวจสอบก่อนว่าเคยเข้าสู่ระบบไว้หรือไม่ (ไม่ว่าจะเป็น Username/Password หรือ Session LINE เดิม)
+    const cachedEarly = getCachedUser();
+    if (cachedEarly && cachedEarly.isLoggedIn && cachedEarly.userId) {
+      currentUser = cachedEarly;
+      if (typeof liff !== "undefined") {
+        liff.init({ liffId }).catch(e => console.warn("Background LIFF init:", e));
+      }
+      hideLoading();
+      if (typeof options.onReady === "function") {
+        options.onReady(currentUser);
+      }
+      return currentUser;
+    }
 
     showLoading("กำลังเชื่อมต่อระบบ LINE...", "กรุณารอสักครู่");
 
@@ -89,8 +136,11 @@ const LiffAuth = (function () {
         throw new Error("ไม่สามารถโหลด LINE LIFF SDK ได้ กรุณาเชื่อมต่ออินเทอร์เน็ต");
       }
 
-      // 2. เรียก liff.init
-      await liff.init({ liffId });
+      // 2. เรียก liff.init พร้อม Timeout 3.5 วินาทีเพื่อไม่ให้ค้างหน้าโหลด
+      await Promise.race([
+        liff.init({ liffId }),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("LIFF connection timeout")), 3500))
+      ]);
       isInitialized = true;
 
       // 3. ตรวจสอบสถานะการเข้าสู่ระบบ
@@ -128,10 +178,16 @@ const LiffAuth = (function () {
               currentUser.empCode = uData.emp_code || uData.empCode || "";
               currentUser.username = uData.username || "";
               currentUser.status = uData.status || "Active";
-              currentUser.accessRights = uData.access_rights || uData.accessRights || "user";
+              currentUser.accessRights = uData.access_rights || uData.accessRights || uData.role || "user";
+              currentUser.access_rights = currentUser.accessRights;
+              currentUser.role = uData.role || uData.access_rights || uData.accessRights || "user";
               if (uData.display_name) {
                 currentUser.displayName = uData.display_name;
               }
+              // Cache sheet profile so all pages can access instantly
+              try {
+                localStorage.setItem(`cmms_user_sheet_${currentUser.userId}`, JSON.stringify(uData));
+              } catch (e) {}
 
               // ถ้าเป็น User ใหม่ หรือ ยังไม่ได้ระบุแผนก -> แสดง Modal แจ้งเตือนให้อัปเดต
               const isProfilePage = window.location.pathname.toLowerCase().includes("profile.html");
@@ -163,9 +219,9 @@ const LiffAuth = (function () {
       }
 
       // 5. กรณีเปิดใน External Browser ปกติ
-      // ตรวจสอบว่ามี cached session เดิมหรือไม่
+      // ตรวจสอบว่ามี cached session เดิมที่ยังล็อกอินอยู่หรือไม่
       const cached = getCachedUser();
-      if (cached) {
+      if (cached && cached.isLoggedIn && cached.userId) {
         currentUser = cached;
         hideLoading();
         if (typeof options.onReady === "function") {
@@ -174,10 +230,12 @@ const LiffAuth = (function () {
         return currentUser;
       }
 
-      // หากจำเป็นต้อง Auth แต่เปิดใน Browser ทั่วไป
+      // หากจำเป็นต้อง Auth แต่เปิดใน Browser ทั่วไป -> redirect ไปหน้า Login
       if (requiredAuth) {
-        showLoading("กำลังเปลี่ยนหน้าไป LINE Login...", "กรุณารอสักครู่");
-        liff.login();
+        hideLoading();
+        const currentFile = window.location.pathname.split("/").pop() || "index.html";
+        const redirectParam = encodeURIComponent(currentFile + window.location.search);
+        window.location.href = `login.html?redirect=${redirectParam}`;
         return null;
       } else {
         // อนุญาต Guest
@@ -199,7 +257,7 @@ const LiffAuth = (function () {
       console.error("LiffAuth.init Error:", err);
       // Fallback จาก LocalStorage หาก offline หรือมีปัญหา
       const cached = getCachedUser();
-      if (cached) {
+      if (cached && cached.isLoggedIn && cached.userId) {
         currentUser = cached;
         hideLoading();
         if (typeof options.onReady === "function") {
@@ -209,10 +267,17 @@ const LiffAuth = (function () {
       }
 
       hideLoading();
+      if (requiredAuth) {
+        const currentFile = window.location.pathname.split("/").pop() || "index.html";
+        const redirectParam = encodeURIComponent(currentFile + window.location.search);
+        window.location.href = `login.html?redirect=${redirectParam}`;
+        return null;
+      }
+
       // สร้าง Guest User fallback
       currentUser = {
-        userId: "guest",
-        displayName: "Guest User",
+        userId: "",
+        displayName: "ผู้เยี่ยมชม (Guest)",
         pictureUrl: "",
         isLoggedIn: false,
         authSource: "fallback"
@@ -229,7 +294,11 @@ const LiffAuth = (function () {
    * ดึงข้อมูลผู้ใช้งานปัจจุบัน
    */
   function getUser() {
-    return currentUser || getCachedUser();
+    const u = currentUser || getCachedUser();
+    if (u && u.isLoggedIn && u.userId) {
+      return u;
+    }
+    return null;
   }
 
   /**
@@ -255,9 +324,11 @@ const LiffAuth = (function () {
   function logout() {
     saveUser(null);
     if (typeof liff !== "undefined" && liff.isLoggedIn && liff.isLoggedIn()) {
-      liff.logout();
+      try {
+        liff.logout();
+      } catch (e) {}
     }
-    location.reload();
+    window.location.href = "login.html";
   }
 
   /**
@@ -325,11 +396,13 @@ const LiffAuth = (function () {
     init,
     getUser,
     saveUser,
+    loginWithCredentials,
     logout,
     scanQRCode,
     showLoading,
     hideLoading,
     showProfileUpdatePrompt,
+    isInLiff,
     DEFAULT_LIFF_ID
   };
 })();

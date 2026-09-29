@@ -15,49 +15,132 @@
   <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
   <style>
-    .type-selector {
+    /* Machine Status & Type Selector */
+    .machine-status-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      background: #f1f5f9;
-      padding: 4px;
-      border-radius: var(--radius-md);
+      gap: 10px;
+      margin-bottom: 8px;
     }
-
-    .type-option {
-      cursor: pointer;
+    .status-choice-card {
       position: relative;
+      border-radius: var(--radius-md);
+      border: 2px solid #e2e8f0;
+      background: #ffffff;
+      padding: 10px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: block;
+      user-select: none;
     }
-
-    .type-option input {
+    .status-choice-card:hover {
+      border-color: #cbd5e1;
+      transform: translateY(-1px);
+    }
+    .status-choice-card input {
       position: absolute;
       opacity: 0;
       pointer-events: none;
     }
-
-    .type-card {
+    .status-choice-content {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .status-icon-box {
+      width: 34px;
+      height: 34px;
+      border-radius: var(--radius-sm);
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 6px;
-      padding: 10px;
-      border-radius: var(--radius-sm);
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--text-muted);
+      font-size: 15px;
+      flex-shrink: 0;
       transition: all 0.2s;
     }
-
-    .type-option input:checked + .type-card.type-cm {
-      background: white;
-      color: var(--primary);
-      box-shadow: var(--shadow-sm);
+    .status-icon-box.bm-icon {
+      background: #fee2e2;
+      color: #dc2626;
+    }
+    .status-icon-box.cm-icon {
+      background: #eff6ff;
+      color: #2563eb;
+    }
+    .status-text-box {
+      flex: 1;
+      min-width: 0;
+    }
+    .status-title {
+      font-size: 12px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .status-title.bm-title { color: #991b1b; }
+    .status-title.cm-title { color: #1e40af; }
+    .status-code-tag {
+      font-size: 9.5px;
+      font-weight: 800;
+      padding: 1px 5px;
+      border-radius: 4px;
+    }
+    .status-code-tag.bm-tag { background: #fecaca; color: #dc2626; }
+    .status-code-tag.cm-tag { background: #dbeafe; color: #1d4ed8; }
+    .status-subtitle {
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-top: 2px;
+      line-height: 1.2;
     }
 
-    .type-option input:checked + .type-card.type-bm {
-      background: white;
-      color: var(--danger);
-      box-shadow: var(--shadow-sm);
+    /* Active States */
+    .status-choice-card:has(input:checked).bm-choice {
+      border-color: #ef4444;
+      background: #fff5f5;
+      box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.15);
+    }
+    .status-choice-card:has(input:checked).cm-choice {
+      border-color: #3b82f6;
+      background: #f0f7ff;
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+    }
+
+    .status-advice {
+      border-radius: var(--radius-sm);
+      padding: 9px 12px;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      font-size: 11.5px;
+      transition: all 0.25s ease;
+    }
+    .status-advice.advice-bm {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #991b1b;
+    }
+    .status-advice.advice-bm i {
+      color: #dc2626;
+      font-size: 14px;
+      margin-top: 2px;
+    }
+    .status-advice.advice-cm {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      color: #166534;
+    }
+    .status-advice.advice-cm i {
+      color: #16a34a;
+      font-size: 14px;
+      margin-top: 2px;
+    }
+    .asset-pulse-guidance {
+      animation: pulseAttention 1.5s infinite alternate;
+    }
+    @keyframes pulseAttention {
+      0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.35); }
+      100% { box-shadow: 0 0 0 5px rgba(239, 68, 68, 0); }
     }
 
     .scanner-btn {
@@ -178,6 +261,11 @@
                 <i class="fa-solid fa-qrcode"></i>
               </button>
             </div>
+            <!-- Guidance Tip on Asset Selected -->
+            <div id="assetGuidanceTip" style="display: none; margin-top: 6px; padding: 7px 10px; border-radius: var(--radius-sm); background: #fefce8; border: 1px solid #fef08a; font-size: 11px; color: #854d0e;">
+              <i class="fa-solid fa-lightbulb" style="color: #ca8a04; margin-right: 4px;"></i>
+              <span>ข้อแนะนำ: หากเครื่องนี้ <strong>หยุดทำงาน/หยุดไลน์ผลิต</strong> โปรดเลือก <strong>"เครื่องหยุดทำงาน (BM)"</strong> เพื่อบันทึก Downtime</span>
+            </div>
           </div>
 
           <!-- Component Code -->
@@ -191,6 +279,8 @@
                 id="reqComp"
                 placeholder="เช่น FA-CR001-MT01"
                 list="req-component-list"
+                onchange="onComponentChange(this.value)"
+                oninput="onComponentChange(this.value)"
                 class="form-input"
                 style="padding-right: 42px;"
               />
@@ -215,25 +305,63 @@
             </div>
           </div>
 
-          <!-- Type (CM / BM) -->
-          <div class="form-group">
-            <label class="form-label">
-              ประเภทงานซ่อม <span class="required">*</span>
-            </label>
-            <div class="type-selector">
-              <label class="type-option">
-                <input type="radio" name="reqType" id="reqTypeCM" value="CM" checked />
-                <div class="type-card type-cm">
-                  <i class="fa-solid fa-wrench"></i> แจ้งซ่อมทั่วไป (CM)
+          <!-- Machine Running Status & Type Selector -->
+          <div class="form-group" id="machineStatusSection">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+              <label class="form-label" style="margin-bottom: 0;">
+                สถานะเครื่องจักรขณะนี้ <span class="required">*</span>
+              </label>
+              <span id="machineStatusBadge" style="font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 20px; background: #eff6ff; color: #1d4ed8;">
+                <i class="fa-solid fa-wrench"></i> เครื่องยังทำงานอยู่ (CM)
+              </span>
+            </div>
+
+            <div class="machine-status-grid">
+              <!-- BM Card: Machine Stopped -->
+              <label class="status-choice-card bm-choice" id="choiceCardBM">
+                <input type="radio" name="reqType" id="reqTypeBM" value="BM" onchange="onReqTypeChange('BM')" />
+                <div class="status-choice-content">
+                  <div class="status-icon-box bm-icon">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                  </div>
+                  <div class="status-text-box">
+                    <div class="status-title bm-title">
+                      เครื่องหยุดทำงาน
+                      <span class="status-code-tag bm-tag">BM</span>
+                    </div>
+                    <div class="status-subtitle">
+                      หยุดเดิน / ผลิตไม่ได้ / ฉุกเฉิน
+                    </div>
+                  </div>
                 </div>
               </label>
 
-              <label class="type-option">
-                <input type="radio" name="reqType" id="reqTypeBM" value="BM" />
-                <div class="type-card type-bm">
-                  <i class="fa-solid fa-triangle-exclamation"></i> เครื่องหยุด (BM)
+              <!-- CM Card: Machine Running -->
+              <label class="status-choice-card cm-choice" id="choiceCardCM">
+                <input type="radio" name="reqType" id="reqTypeCM" value="CM" checked onchange="onReqTypeChange('CM')" />
+                <div class="status-choice-content">
+                  <div class="status-icon-box cm-icon">
+                    <i class="fa-solid fa-wrench"></i>
+                  </div>
+                  <div class="status-text-box">
+                    <div class="status-title cm-title">
+                      เครื่องยังทำงานอยู่
+                      <span class="status-code-tag cm-tag">CM</span>
+                    </div>
+                    <div class="status-subtitle">
+                      เดินเครื่องได้ / รั่วซึม / เสียงดัง
+                    </div>
+                  </div>
                 </div>
               </label>
+            </div>
+
+            <!-- Dynamic Advice / Warning Banner -->
+            <div id="statusAdviceBox" class="status-advice advice-cm">
+              <i id="adviceIcon" class="fa-solid fa-circle-check"></i>
+              <div id="adviceText" style="flex: 1; font-size: 11.5px; line-height: 1.4;">
+                <strong>แจ้งซ่อมทั่วไป (CM):</strong> เครื่องยังเดินเครื่องผลิตได้ มีอาการชำรุดเล็กน้อย ช่างจะเข้าตรวจสอบตามคิวงานปกติ (ไม่บันทึก Downtime เครื่องหยุด)
+              </div>
             </div>
           </div>
 
@@ -308,6 +436,7 @@
   </div>
 
   <!-- Shared Scripts -->
+  <script src="js/image-compressor.js"></script>
   <script src="js/liff-auth.js"></script>
   <script src="js/api.js"></script>
 
@@ -323,11 +452,19 @@
 
       try {
         activeUser = await LiffAuth.init({
-          requiredAuth: false,
+          requiredAuth: true,
           onReady: (user) => {
-            console.log("Ready with user:", user);
+            if (!user || !user.isLoggedIn || !user.userId) {
+              window.location.href = "login.html";
+              return;
+            }
           }
         });
+
+        if (!activeUser || !activeUser.isLoggedIn || !activeUser.userId) {
+          window.location.href = "login.html";
+          return;
+        }
 
         await loadMachineData();
         checkUrlParams();
@@ -411,6 +548,40 @@
     }
 
     function onAssetInput(val) {
+      const tip = document.getElementById("assetGuidanceTip");
+      if (tip) tip.style.display = (val && val.trim()) ? "block" : "none";
+
+      if (!val) return;
+      val = val.trim();
+
+      // ตรวจสอบว่าผู้ใช้กรอกหรือสแกนเป็นรหัส Component หรือไม่ (เช่น FA-CR001-MT03 หรือ FA-AR001-CC01)
+      const compMatch = rawComponents.find(c => c.compCode && c.compCode.toUpperCase() === val.toUpperCase());
+      if (compMatch) {
+        // หากพบว่าเป็น Component ให้แยก Parent Asset ใส่ช่องเครื่องจักร และใส่รหัสอะไหล่ในช่องชิ้นส่วน
+        const parentCode = compMatch.assetCode;
+        const compCode = compMatch.compCode;
+
+        const assetInput = document.getElementById("reqAsset");
+        const compInput = document.getElementById("reqComp");
+        if (assetInput && assetInput.value !== parentCode) assetInput.value = parentCode;
+        if (compInput && compInput.value !== compCode) compInput.value = compCode;
+
+        val = parentCode;
+      } else {
+        // Fallback: ตรวจสอบโครงสร้าง Hyphen หากไม่มีใน rawComponents แต่เครื่องจักรหลักตรงกับ rawAssets
+        const lastHyphen = val.lastIndexOf("-");
+        if (lastHyphen > 0) {
+          const possibleParent = val.substring(0, lastHyphen);
+          if (rawAssets.some(a => a.assetCode && a.assetCode.toUpperCase() === possibleParent.toUpperCase())) {
+            const assetInput = document.getElementById("reqAsset");
+            const compInput = document.getElementById("reqComp");
+            if (assetInput && assetInput.value !== possibleParent) assetInput.value = possibleParent;
+            if (compInput && !compInput.value) compInput.value = val;
+            val = possibleParent;
+          }
+        }
+      }
+
       const compList = document.getElementById("req-component-list");
       if (compList) {
         compList.innerHTML = "";
@@ -439,6 +610,55 @@
       }
     }
 
+    function onComponentChange(compVal) {
+      if (!compVal) return;
+      compVal = compVal.trim();
+
+      const compMatch = rawComponents.find(c => c.compCode && c.compCode.toUpperCase() === compVal.toUpperCase());
+      if (compMatch && compMatch.assetCode) {
+        const assetInput = document.getElementById("reqAsset");
+        if (assetInput && (!assetInput.value || assetInput.value.trim().toUpperCase() !== compMatch.assetCode.toUpperCase())) {
+          assetInput.value = compMatch.assetCode;
+          onAssetInput(compMatch.assetCode);
+        }
+      }
+    }
+
+    function onReqTypeChange(type) {
+      const isBm = type === "BM";
+      const adviceBox = document.getElementById("statusAdviceBox");
+      const adviceIcon = document.getElementById("adviceIcon");
+      const adviceText = document.getElementById("adviceText");
+      const badge = document.getElementById("machineStatusBadge");
+      const priorityInput = document.getElementById("reqPriority");
+
+      if (isBm) {
+        if (adviceBox) {
+          adviceBox.className = "status-advice advice-bm";
+          adviceIcon.className = "fa-solid fa-triangle-exclamation";
+          adviceText.innerHTML = "<strong>เครื่องหยุดทำงาน (Breakdown - BM):</strong> ไลน์ผลิตหยุดเดิน ระบบจะแจ้งเตือนช่างเป็นงานด่วนฉุกเฉิน และเริ่มนับเวลาหยุดเครื่อง (Downtime) ทันที";
+        }
+        if (badge) {
+          badge.style.background = "#fee2e2";
+          badge.style.color = "#dc2626";
+          badge.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> เครื่องหยุด (จับเวลา Downtime)';
+        }
+        if (priorityInput) priorityInput.value = "Urgent";
+      } else {
+        if (adviceBox) {
+          adviceBox.className = "status-advice advice-cm";
+          adviceIcon.className = "fa-solid fa-circle-check";
+          adviceText.innerHTML = "<strong>แจ้งซ่อมทั่วไป (CM):</strong> ยังเดินเครื่องผลิตได้ มีอาการชำรุดเล็กน้อย ช่างจะเข้าตรวจสอบตามคิวงานปกติ (ไม่บันทึก Downtime เครื่องหยุด)";
+        }
+        if (badge) {
+          badge.style.background = "#eff6ff";
+          badge.style.color = "#1d4ed8";
+          badge.innerHTML = '<i class="fa-solid fa-wrench"></i> เครื่องยังทำงานอยู่ (CM)';
+        }
+        if (priorityInput) priorityInput.value = "Normal";
+      }
+    }
+
     async function scanQR(targetInputId) {
       try {
         const scanned = await LiffAuth.scanQRCode();
@@ -448,6 +668,8 @@
             input.value = scanned;
             if (targetInputId === "reqAsset") {
               onAssetInput(scanned);
+            } else if (targetInputId === "reqComp") {
+              onComponentChange(scanned);
             }
           }
         }
@@ -474,14 +696,40 @@
         }
 
         const selectedType = document.querySelector('input[name="reqType"]:checked').value;
-        const user = LiffAuth.getUser() || {};
+        const user = LiffAuth.getUser();
+
+        if (!user || !user.isLoggedIn || !user.userId) {
+          LiffAuth.hideLoading();
+          alert("กรุณาเข้าสู่ระบบก่อนทำการแจ้งซ่อม");
+          window.location.href = "login.html";
+          return;
+        }
+
+        let assetCodeVal = document.getElementById("reqAsset").value.trim();
+        let compCodeVal = document.getElementById("reqComp").value.trim();
+
+        // ตรวจสอบขั้นสุดท้ายป้องกัน assetCode สลับกับ componentCode
+        const compMatch = rawComponents.find(c => c.compCode && c.compCode.toUpperCase() === assetCodeVal.toUpperCase());
+        if (compMatch) {
+          if (!compCodeVal) compCodeVal = compMatch.compCode;
+          assetCodeVal = compMatch.assetCode;
+        } else {
+          const lastHyphen = assetCodeVal.lastIndexOf("-");
+          if (lastHyphen > 0) {
+            const possibleParent = assetCodeVal.substring(0, lastHyphen);
+            if (rawAssets.some(a => a.assetCode && a.assetCode.toUpperCase() === possibleParent.toUpperCase())) {
+              if (!compCodeVal) compCodeVal = assetCodeVal;
+              assetCodeVal = possibleParent;
+            }
+          }
+        }
 
         const payload = {
           userId: user.userId || "",
           displayName: user.displayName || "ผู้ใช้งาน",
           pictureUrl: user.pictureUrl || "",
-          assetCode: document.getElementById("reqAsset").value.trim(),
-          componentCode: document.getElementById("reqComp").value.trim(),
+          assetCode: assetCodeVal,
+          componentCode: compCodeVal,
           department: document.getElementById("reqDept").value.trim(),
           location: document.getElementById("reqLoc").value.trim(),
           reqType: selectedType,
@@ -524,6 +772,9 @@
     function resetForNewTicket() {
       document.getElementById("requestForm").reset();
       document.getElementById("reqTypeCM").checked = true;
+      onReqTypeChange("CM");
+      const tip = document.getElementById("assetGuidanceTip");
+      if (tip) tip.style.display = "none";
       document.getElementById("req-component-list").innerHTML = "";
       document.getElementById("formCard").style.display = "block";
       document.getElementById("successResult").style.display = "none";

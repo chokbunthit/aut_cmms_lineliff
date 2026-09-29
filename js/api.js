@@ -6,10 +6,11 @@
 
 const CmmsApi = (function () {
   // Google Apps Script Web App Endpoint URL
-  const DEFAULT_GAS_URL ="https://script.google.com/macros/s/AKfycbxd21CJ0SO4IOC8mMkjCIQbcmgVBPiU6e28F_xj1amO7u9oNU202Alogq-JJ0Nrr-q6GQ/exec";
-    //"https://script.google.com/macros/s/AKfycbyvJevJP93b_ffAEt4qxku811MwAMkvx4xMI1c92VEwKMdusBWKIjmLSvUhWy6UV8AM7A/exec";
+  // Backend API Endpoint URL (AUT CMMS v8 - Cloudflare Worker / Supabase)
+  const DEFAULT_API_URL = "https://aut-cmms-v8.chokbunthit.workers.dev/api/liff";
+  const DEFAULT_GAS_URL = DEFAULT_API_URL;
 
-  let baseUrl = DEFAULT_GAS_URL;
+  let baseUrl = (typeof localStorage !== "undefined" && localStorage.getItem("cmms_api_url")) || DEFAULT_API_URL;
 
   /**
    * กำหนด Web App URL หากต้องการเปลี่ยน
@@ -62,7 +63,20 @@ const CmmsApi = (function () {
       }
 
       if (!response.ok) {
-        throw new Error(`Server returned HTTP ${response.status}: ${response.statusText}`);
+        let serverErrorMsg = "";
+        try {
+          const errJson = await response.json();
+          if (errJson && (errJson.message || errJson.error)) {
+            serverErrorMsg = errJson.message || errJson.error;
+          }
+        } catch (_) {
+          try {
+            const rawText = await response.text();
+            if (rawText) serverErrorMsg = rawText;
+          } catch (__) {}
+        }
+        const finalMsg = serverErrorMsg || `Server returned HTTP ${response.status}${response.statusText ? ': ' + response.statusText : ''}`;
+        throw new Error(finalMsg);
       }
 
       const result = await response.json();
@@ -229,6 +243,37 @@ const CmmsApi = (function () {
     }
   }
 
+  // In-memory cache for Downtime Codes
+  let downtimeCodesCache = null;
+
+  /**
+   * ดึงรายการรหัสหยุดทำงาน (Lookup Downtime Codes) จากตาราง lookup_downtime_code
+   */
+  async function getLookupDowntimeCodes(forceRefresh = false) {
+    if (!forceRefresh && downtimeCodesCache && downtimeCodesCache.length > 0) {
+      return { status: "success", data: downtimeCodesCache };
+    }
+    try {
+      const res = await request("getLookupDowntimeCodes", {}, "POST");
+      if (res && res.status === "success" && Array.isArray(res.data) && res.data.length > 0) {
+        downtimeCodesCache = res.data;
+        return res;
+      }
+      const getRes = await request("getLookupDowntimeCodes", {}, "GET");
+      if (getRes && getRes.status === "success" && Array.isArray(getRes.data) && getRes.data.length > 0) {
+        downtimeCodesCache = getRes.data;
+        return getRes;
+      }
+      return res || { status: "success", data: [] };
+    } catch (e) {
+      console.warn("getLookupDowntimeCodes fetch error:", e);
+      return {
+        status: "success",
+        data: downtimeCodesCache || []
+      };
+    }
+  }
+
   // In-memory cache for PM Task List steps
   const taskListCache = {};
 
@@ -257,20 +302,28 @@ const CmmsApi = (function () {
   }
 
   /**
-   * Helper Utility: ย่อขนาดรูปภาพผ่าน HTML Canvas ก่อนแปลงเป็น Base64
+   * Helper Utility: ย่อและบีบอัดภาพผ่าน Web Worker (<= 1280px, <= 500 KB)
+   * โดยไม่บล็อก Main Thread หน้าจอไม่ค้าง
    * @param {File|Blob} file - ไฟล์รูปภาพจาก Input หรือ Camera
    * @param {number} maxWidth - ความกว้างสูงสุด (default 1280px)
    * @param {number} maxHeight - ความสูงสูงสุด (default 1280px)
-   * @param {number} quality - คุณภาพ JPEG 0.1 - 1.0 (default 0.75)
+   * @param {number} quality - คุณภาพเริ่มต้น (default 0.82)
    * @returns {Promise<string>} Base64 Data URL
    */
-  function compressImage(file, maxWidth = 1280, maxHeight = 1280, quality = 0.75) {
-    return new Promise((resolve, reject) => {
-      if (!file) {
-        resolve("");
-        return;
-      }
+  async function compressImage(file, maxWidth = 1280, maxHeight = 1280, quality = 0.82) {
+    if (!file) return "";
+    if (typeof CmmsImageCompressor !== "undefined" && CmmsImageCompressor.compress) {
+      const res = await CmmsImageCompressor.compress(file, {
+        maxWidth: maxWidth,
+        maxHeight: maxHeight,
+        maxSizeBytes: 500 * 1024, // 500 KB limit
+        initialQuality: quality
+      });
+      return res.dataUrl || "";
+    }
 
+    // Fallback: หากยังไม่ได้โหลดโมดูล CmmsImageCompressor
+    return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.readAsDataURL(file);
       reader.onload = (event) => {
@@ -280,7 +333,6 @@ const CmmsApi = (function () {
           let width = img.width;
           let height = img.height;
 
-          // คำนวณ Aspect Ratio ใหม่หากขนาดเกิน
           if (width > height) {
             if (width > maxWidth) {
               height = Math.round((height * maxWidth) / width);
@@ -296,13 +348,11 @@ const CmmsApi = (function () {
           const canvas = document.createElement("canvas");
           canvas.width = width;
           canvas.height = height;
-
           const ctx = canvas.getContext("2d");
           ctx.drawImage(img, 0, 0, width, height);
 
-          // แปลงเป็น JPEG พร้อมบีบอัดคุณภาพ
-          const compressedDataUrl = canvas.toDataURL("image/jpeg", quality);
-          resolve(compressedDataUrl);
+          let dataUrl = canvas.toDataURL("image/jpeg", quality);
+          resolve(dataUrl);
         };
         img.onerror = (err) => reject(err);
       };
@@ -311,10 +361,41 @@ const CmmsApi = (function () {
   }
 
   /**
-   * Helper Utility: แปลงไฟล์รูปภาพเป็น Base64 Data URL
+   * Helper Utility: แปลงไฟล์รูปภาพเป็น Base64 Data URL (ย่อ <= 1280px และบีบอัด <= 500 KB)
    */
-  function fileToBase64(file) {
-    return compressImage(file, 1280, 1280, 0.75);
+  async function fileToBase64(file) {
+    return await compressImage(file, 1280, 1280, 0.82);
+  }
+
+  /**
+   * อัปโหลดรูปภาพขึ้น Supabase File Storage ผ่าน API Backend
+   * @param {File|Blob|string} fileOrBase64 - ไฟล์หรือ Base64 Data URL
+   * @param {string} folder - โฟลเดอร์ใน bucket (เช่น requests, workorders, subtasks)
+   * @returns {Promise<{status: string, publicUrl: string, path: string}>}
+   */
+  async function uploadImage(fileOrBase64, folder = "requests") {
+    try {
+      let base64Data = "";
+      if (typeof fileOrBase64 === "string" && fileOrBase64.startsWith("data:image")) {
+        base64Data = fileOrBase64;
+      } else if (fileOrBase64) {
+        base64Data = await fileToBase64(fileOrBase64);
+      }
+
+      if (!base64Data) {
+        return { status: "error", message: "ไม่มีข้อมูลรูปภาพ", publicUrl: "" };
+      }
+
+      const res = await request("uploadImage", {
+        image: base64Data,
+        folder: folder
+      }, "POST");
+
+      return res;
+    } catch (err) {
+      console.error("CmmsApi.uploadImage error:", err);
+      return { status: "error", message: err.message || String(err), publicUrl: "" };
+    }
   }
 
   /* ==========================================================================
@@ -565,6 +646,23 @@ const CmmsApi = (function () {
           { item: "สายพานขับ V-Belt B-42", cost: 190, qty: 1 }
         ],
         totalExpenses: 750,
+        bmStandardTask: {
+          id: 35,
+          task_no: "T001",
+          task_category: "ตรวจ-ปรับแต่ง",
+          pm_cycle: "1M",
+          machine_group: "BP",
+          component_group: "PT",
+          component_name: "Motor Drive Gearbox",
+          component_code: "EQ-CV-01",
+          steps: [
+            { stepNo: 1, stepName: "Loto: แขวนป้ายเห้ามเดินครื่องจักรที่เปรคเกอร์", desc: "Loto: แขวนป้ายเห้ามเดินครื่องจักรที่เปรคเกอร์" },
+            { stepNo: 2, stepName: "ตัดระบบไฟฟ้าและตรวจสอบความปลอดภัย", desc: "ตัดระบบไฟฟ้าและตรวจสอบความปลอดภัย" },
+            { stepNo: 3, stepName: "เช็คสภาพตัวเครื่องไม่แตกหัก ตรวจสอบจุดยึดและลูกปืน", desc: "เช็คสภาพตัวเครื่องไม่แตกหัก ตรวจสอบจุดยึดและลูกปืน" },
+            { stepNo: 4, stepName: "Loto: ปลดป้าย Loto หลังดำเนินการเสร็จสิ้น", desc: "Loto: ปลดป้าย Loto หลังดำเนินการเสร็จสิ้น" },
+            { stepNo: 5, stepName: "เปิดเครื่องทดสอบการหมุนและการทำงาน", desc: "เปิดเครื่องทดสอบการหมุนและการทำงาน" }
+          ]
+        },
         closingForm: {
           rootCause: "",
           actionTaken: "",
@@ -687,9 +785,25 @@ const CmmsApi = (function () {
     }
   }
 
+  /**
+   * 22. ปฏิเสธคำขอแจ้งซ่อม (Reject Request)
+   */
+  async function rejectRequest(payload) {
+    try {
+      return await request("rejectRequest", payload, "POST");
+    } catch (err) {
+      console.error("rejectRequest Error:", err);
+      return {
+        success: false,
+        message: err.message || String(err)
+      };
+    }
+  }
+
   // Public Interface
   return {
     checkManagerRole,
+    rejectRequest,
     getPendingRequests,
     getAssigneeMasterData,
     assignPendingTask,
@@ -711,8 +825,10 @@ const CmmsApi = (function () {
     getTaskListData,
     saveSubTask,
     closeWorkOrder,
+    getLookupDowntimeCodes,
     compressImage,
     fileToBase64,
+    uploadImage,
     request,
     DEFAULT_GAS_URL
   };

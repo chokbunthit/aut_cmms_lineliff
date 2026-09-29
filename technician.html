@@ -181,14 +181,69 @@
 
     .tag-pm {
       background: #ecfeff;
-      color: #0e7490;
+      color: #0891b2;
       border: 1px solid #a5f3fc;
     }
 
     .tag-cm {
+      background: #eff6ff;
+      color: #2563eb;
+      border: 1px solid #bfdbfe;
+    }
+
+    .tag-bm {
       background: #fef2f2;
-      color: #b91c1c;
+      color: #dc2626;
       border: 1px solid #fecaca;
+    }
+
+    .future-plan-badge {
+      font-size: 9.5px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: #e0f2fe;
+      color: #0369a1;
+      border: 1px solid #bae6fd;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .btn-future-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 10px;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 700;
+      border: 1.5px solid #cbd5e1;
+      background: #f8fafc;
+      color: #475569;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-future-toggle:hover {
+      background: #f1f5f9;
+      border-color: #94a3b8;
+    }
+
+    .btn-future-toggle.active {
+      background: #0284c7;
+      color: white;
+      border-color: #0284c7;
+      box-shadow: 0 2px 6px rgba(2, 132, 199, 0.3);
+    }
+
+    .btn-future-toggle.active i {
+      color: white !important;
+    }
+
+    .btn-future-toggle.active #futurePMCountBadge {
+      background: rgba(255, 255, 255, 0.25);
+      color: white;
     }
 
     .wo-subtasks-preview {
@@ -646,7 +701,9 @@
     <!-- Top Header -->
     <header class="app-header">
       <div class="header-brand">
-        <button id="navBackBtn" style="display: none; border: none; background: none; font-size: 16px; color: var(--text-main); margin-right: 6px; cursor: pointer;" onclick="goBackToList()">
+        <button id="navBackBtn"
+          style="display: none; border: none; background: none; font-size: 16px; color: var(--text-main); margin-right: 6px; cursor: pointer;"
+          onclick="goBackToList()">
           <i class="fa-solid fa-arrow-left"></i>
         </button>
         <div class="header-logo" style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);">
@@ -676,9 +733,11 @@
       <section id="taskListView">
 
         <!-- Technician Info Banner -->
-        <div class="profile-card" style="background: linear-gradient(135deg, #0f172a 0%, #0369a1 50%, #0284c7 100%); padding: 14px 16px; margin-bottom: 12px;">
+        <div class="profile-card"
+          style="background: linear-gradient(135deg, #0f172a 0%, #0369a1 50%, #0284c7 100%); padding: 14px 16px; margin-bottom: 12px;">
           <div style="display: flex; align-items: center; gap: 12px;">
-            <img id="techAvatar" src="https://ui-avatars.com/api/?name=MT&background=0284c7&color=fff" alt="Avatar" class="profile-avatar" style="width: 44px; height: 44px;" />
+            <img id="techAvatar" src="https://ui-avatars.com/api/?name=MT&background=0284c7&color=fff" alt="Avatar"
+              class="profile-avatar" style="width: 44px; height: 44px;" />
             <div style="flex: 1; min-width: 0;">
               <div style="display: flex; align-items: center; gap: 6px;">
                 <span class="tech-header-badge" style="background: rgba(255,255,255,0.2); color: white;">
@@ -686,63 +745,103 @@
                 </span>
                 <span style="font-size: 11px; opacity: 0.85;">ช่างซ่อมบำรุง</span>
               </div>
-              <div id="techName" style="font-size: 15px; font-weight: 700; color: white; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+              <div id="techName"
+                style="font-size: 15px; font-weight: 700; color: white; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                 กำลังโหลด...
               </div>
             </div>
             <div style="text-align: right;">
-              <div id="activeTaskCount" style="font-size: 20px; font-weight: 800; color: #38bdf8; line-height: 1;">0</div>
+              <div id="activeTaskCount" style="font-size: 20px; font-weight: 800; color: #38bdf8; line-height: 1;">0
+              </div>
               <div style="font-size: 10px; opacity: 0.85; margin-top: 2px;">ใบงานค้าง</div>
             </div>
           </div>
         </div>
 
-        <!-- Quick Summary Stats Grid -->
-        <div class="stats-grid" style="grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px;">
-          <div class="stat-box" style="padding: 8px 10px; flex-direction: column; align-items: flex-start; gap: 2px;">
-            <span style="font-size: 10.5px; color: var(--text-muted);">ทั้งหมด</span>
-            <span id="statAllCount" style="font-size: 16px; font-weight: 700; color: var(--text-main);">0</span>
+        <!-- Backlog Summary Stats Grid (แยก BM / CM / PM) -->
+        <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 12px;">
+          <div class="stat-box stat-box-bm" onclick="setTaskFilter('bm')" style="padding: 8px 6px; flex-direction: column; align-items: center; text-align: center; cursor: pointer; border-color: #fca5a5; background: #fff5f5;">
+            <div style="font-size: 10px; font-weight: 700; color: #dc2626; display: flex; align-items: center; gap: 3px;">
+              <span class="pulse-dot" style="width: 5px; height: 5px; background: #dc2626; border-radius: 50%; display: inline-block;"></span> BM
+            </div>
+            <span id="statBmCount" style="font-size: 16px; font-weight: 800; color: #dc2626; line-height: 1.2; margin-top: 2px;">0</span>
+            <span style="font-size: 9px; color: #ef4444;">เครื่องหยุด</span>
           </div>
-          <div class="stat-box" style="padding: 8px 10px; flex-direction: column; align-items: flex-start; gap: 2px; border-color: #bfdbfe;">
-            <span style="font-size: 10.5px; color: #1d4ed8;">กำลังดำเนินการ</span>
-            <span id="statProgressCount" style="font-size: 16px; font-weight: 700; color: #1d4ed8;">0</span>
+
+          <div class="stat-box stat-box-cm" onclick="setTaskFilter('cm')" style="padding: 8px 6px; flex-direction: column; align-items: center; text-align: center; cursor: pointer; border-color: #bfdbfe; background: #f8faff;">
+            <div style="font-size: 10px; font-weight: 700; color: #2563eb; display: flex; align-items: center; gap: 3px;">
+              <i class="fa-solid fa-wrench" style="font-size: 9px;"></i> CM
+            </div>
+            <span id="statCmCount" style="font-size: 16px; font-weight: 800; color: #2563eb; line-height: 1.2; margin-top: 2px;">0</span>
+            <span style="font-size: 9px; color: #3b82f6;">แจ้งซ่อม</span>
           </div>
-          <div class="stat-box" style="padding: 8px 10px; flex-direction: column; align-items: flex-start; gap: 2px; border-color: #bbf7d0;">
-            <span style="font-size: 10.5px; color: #15803d;">เสร็จสิ้นแล้ว</span>
-            <span id="statDoneCount" style="font-size: 16px; font-weight: 700; color: #15803d;">0</span>
+
+          <div class="stat-box stat-box-pm" onclick="setTaskFilter('pm')" style="padding: 8px 6px; flex-direction: column; align-items: center; text-align: center; cursor: pointer; border-color: #a5f3fc; background: #f0fdfa;">
+            <div style="font-size: 10px; font-weight: 700; color: #0891b2; display: flex; align-items: center; gap: 3px;">
+              <i class="fa-solid fa-calendar-check" style="font-size: 9px;"></i> PM
+            </div>
+            <span id="statPmCount" style="font-size: 16px; font-weight: 800; color: #0891b2; line-height: 1.2; margin-top: 2px;">0</span>
+            <span style="font-size: 9px; color: #06b6d4;">บำรุงรักษา</span>
           </div>
+
+          <div class="stat-box" onclick="setTaskFilter('all')" style="padding: 8px 6px; flex-direction: column; align-items: center; text-align: center; cursor: pointer; background: #f8fafc;">
+            <div style="font-size: 10px; font-weight: 700; color: #475569; display: flex; align-items: center; gap: 3px;">
+              <i class="fa-solid fa-clipboard-list" style="font-size: 9px;"></i> รวมค้าง
+            </div>
+            <span id="statTotalPendingCount" style="font-size: 16px; font-weight: 800; color: #0f172a; line-height: 1.2; margin-top: 2px;">0</span>
+            <span style="font-size: 9px; color: #64748b;">เดือนนี้</span>
+          </div>
+        </div>
+
+        <!-- Month Filter Indicator & Future PM Plan Toggle -->
+        <div class="month-control-bar" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; background: #ffffff; border: 1px solid var(--border-color); border-radius: 12px; padding: 7px 12px; box-shadow: var(--shadow-sm);">
+          <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #334155; font-weight: 600;">
+            <i class="fa-regular fa-calendar-days" style="color: var(--primary);"></i>
+            <span>งานเดือน: <strong id="currentMonthLabelText" style="color: var(--primary);">-</strong></span>
+          </div>
+          <button type="button" id="btnToggleFuturePM" class="btn-future-toggle" onclick="toggleFuturePMSwitch()" title="แตะเพื่อเปิด/ปิดแสดงงาน PM ล่วงหน้า">
+            <i class="fa-solid fa-calendar-plus" style="font-size: 11px; color: #0891b2;"></i>
+            <span id="futurePMBtnLabel">แสดงงานล่วงหน้า</span>
+            <span id="futurePMCountBadge" style="background: #e0f2fe; color: #0369a1; padding: 1px 6px; border-radius: 8px; font-size: 10px; font-weight: 700;">0</span>
+          </button>
         </div>
 
         <!-- Search Bar -->
         <div class="search-box-tech">
           <i class="fa-solid fa-magnifying-glass"></i>
-          <input type="text" id="searchInput" placeholder="ค้นหา WO No, รหัสเครื่องจักร, สถานที่..." oninput="handleSearchFilter()" />
+          <input type="text" id="searchInput" placeholder="ค้นหา WO No, รหัสเครื่องจักร, สถานที่..."
+            oninput="handleSearchFilter()" />
         </div>
 
-        <!-- Filter Pills Tabs -->
+        <!-- Filter Pills Tabs (แยก BM, CM, PM, ทั้งหมด, เสร็จสิ้น) -->
         <div class="filter-scroll">
           <button class="filter-tab active" data-filter="all" onclick="setTaskFilter('all')">
-            <span>ทั้งหมด</span>
+            <span>งานค้างทั้งหมด</span>
             <span class="tab-badge" id="badgeFilterAll">0</span>
           </button>
-          <button class="filter-tab" data-filter="progress" onclick="setTaskFilter('progress')">
-            <i class="fa-solid fa-spinner fa-spin-pulse" style="font-size: 10px; color: #2563eb;"></i>
-            <span>กำลังดำเนินการ</span>
-            <span class="tab-badge" id="badgeFilterProgress">0</span>
+          <button class="filter-tab" data-filter="bm" onclick="setTaskFilter('bm')">
+            <span class="pulse-dot" style="width: 6px; height: 6px; background: #ef4444; border-radius: 50%; display: inline-block;"></span>
+            <span>BM (เครื่องหยุด)</span>
+            <span class="tab-badge" id="badgeFilterBM" style="color: #dc2626; font-weight: 700;">0</span>
+          </button>
+          <button class="filter-tab" data-filter="cm" onclick="setTaskFilter('cm')">
+            <i class="fa-solid fa-wrench" style="font-size: 10px; color: #2563eb;"></i>
+            <span>CM (แจ้งซ่อม)</span>
+            <span class="tab-badge" id="badgeFilterCM">0</span>
           </button>
           <button class="filter-tab" data-filter="pm" onclick="setTaskFilter('pm')">
             <i class="fa-solid fa-calendar-check" style="font-size: 10px; color: #0891b2;"></i>
-            <span>งาน PM</span>
+            <span>PM (บำรุงรักษา)</span>
             <span class="tab-badge" id="badgeFilterPM">0</span>
           </button>
-          <button class="filter-tab" data-filter="urgent" onclick="setTaskFilter('urgent')">
-            <i class="fa-solid fa-fire" style="font-size: 10px; color: #ef4444;"></i>
-            <span>ด่วน/ฉุกเฉิน</span>
-            <span class="tab-badge" id="badgeFilterUrgent">0</span>
+          <button class="filter-tab" data-filter="pending_approval" onclick="setTaskFilter('pending_approval')">
+            <i class="fa-solid fa-hourglass-half" style="font-size: 10px; color: #d97706;"></i>
+            <span>รออนุมัติ</span>
+            <span class="tab-badge" id="badgeFilterPendingApproval" style="color: #b45309; background: #fef3c7; font-weight: 700;">0</span>
           </button>
           <button class="filter-tab" data-filter="done" onclick="setTaskFilter('done')">
             <i class="fa-solid fa-circle-check" style="font-size: 10px; color: #16a34a;"></i>
-            <span>เสร็จสิ้น</span>
+            <span>เสร็จสิ้นแล้ว</span>
             <span class="tab-badge" id="badgeFilterDone">0</span>
           </button>
         </div>
@@ -794,7 +893,8 @@
          STICKY BOTTOM BAR (For State 2: Closing Action)
     ========================================================== -->
     <div id="stickyActionBar" class="sticky-action-bar" style="display: none;">
-      <button type="button" class="header-icon-btn" onclick="goBackToList()" style="width: 44px; height: 44px;" title="ย้อนกลับ">
+      <button type="button" class="header-icon-btn" onclick="goBackToList()" style="width: 44px; height: 44px;"
+        title="ย้อนกลับ">
         <i class="fa-solid fa-arrow-left"></i>
       </button>
       <button type="button" class="btn-close-wo" id="btnCloseWorkOrder" onclick="openCloseModal()">
@@ -809,30 +909,36 @@
     <div id="closeWOModal" class="modal-sheet">
       <div class="modal-sheet-content">
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;">
-          <h3 style="font-size: 15px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
+          <h3
+            style="font-size: 15px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
             <i class="fa-solid fa-clipboard-check" style="color: #16a34a;"></i>
             ยืนยันการปิดใบงาน
           </h3>
-          <button onclick="closeCloseModal()" style="border: none; background: none; font-size: 16px; color: var(--text-sub); cursor: pointer;">
+          <button onclick="closeCloseModal()"
+            style="border: none; background: none; font-size: 16px; color: var(--text-sub); cursor: pointer;">
             <i class="fa-solid fa-xmark"></i>
           </button>
         </div>
 
         <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 14px;">
-          คุณกำลังจะส่งมอบงาน <strong id="modalWoNoText" style="color: var(--primary);">-</strong> เพื่อให้หัวหน้าช่างตรวจสอบและอนุมัติ (<strong>Pending Approval</strong>)
+          คุณกำลังจะส่งมอบงาน <strong id="modalWoNoText" style="color: var(--primary);">-</strong>
+          เพื่อให้หัวหน้าช่างตรวจสอบและอนุมัติ (<strong>Pending Approval</strong>)
         </p>
 
         <form id="finalCloseForm" onsubmit="handleFinalCloseSubmit(event)">
           <div class="form-group">
             <label class="form-label">หมายเหตุการส่งมอบ / ข้อเสนอแนะช่าง</label>
-            <textarea id="modalTechnicianNote" class="form-textarea" placeholder="ระบุข้อความสรุปการส่งมอบเครื่องจักรคืนฝ่ายผลิต..." style="min-height: 70px;"></textarea>
+            <textarea id="modalTechnicianNote" class="form-textarea"
+              placeholder="ระบุข้อความสรุปการส่งมอบเครื่องจักรคืนฝ่ายผลิต..." style="min-height: 70px;"></textarea>
           </div>
 
           <div style="display: flex; gap: 10px; margin-top: 16px;">
-            <button type="button" onclick="closeCloseModal()" class="form-input" style="flex: 1; text-align: center; cursor: pointer; background: #f1f5f9; font-weight: 600;">
+            <button type="button" onclick="closeCloseModal()" class="form-input"
+              style="flex: 1; text-align: center; cursor: pointer; background: #f1f5f9; font-weight: 600;">
               ยกเลิก
             </button>
-            <button type="submit" class="btn-primary" style="flex: 2; background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);">
+            <button type="submit" class="btn-primary"
+              style="flex: 2; background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);">
               <i class="fa-solid fa-paper-plane"></i> ส่งตรวจงาน (Submit)
             </button>
           </div>
@@ -870,6 +976,7 @@
   </div>
 
   <!-- Shared Scripts -->
+  <script src="js/image-compressor.js"></script>
   <script src="js/liff-auth.js"></script>
   <script src="js/api.js"></script>
 
@@ -898,6 +1005,9 @@
 
         // ดึงข้อมูลงานที่ได้รับมอบหมาย
         await fetchTechnicianWork();
+
+        // โหลดรหัส Downtime ล่วงหน้า
+        loadDowntimeCodes();
       } catch (err) {
         console.error("Technician Init Error:", err);
       } finally {
@@ -1010,53 +1120,184 @@
         }
 
         const woGroup = groupMap.get(woNo);
-        woGroup.subtasks.push({
-          id: task.id,
-          task_no: task.task_no || `TASK-${woGroup.subtasks.length + 1}`,
-          equipment: task.equipment || task.equipment_name || "อุปกรณ์ย่อย",
-          equipment_code: task.equipment_code || "",
-          pm_type: task.pm_type || ""
-        });
+        const isPM = (woGroup.woType || "").toUpperCase().includes("PM");
+        const hasValidTask = task.has_task === true || isPM || (task.task_no && String(task.task_no).trim() !== "");
+
+        if (hasValidTask && (task.equipment_code || task.equipment || task.task_no)) {
+          woGroup.subtasks.push({
+            id: task.id,
+            task_id: task.task_id || null,
+            task_no: task.task_no || `TASK-${woGroup.subtasks.length + 1}`,
+            task_category: task.task_category || "",
+            equipment: task.equipment || task.equipment_name || "อุปกรณ์ย่อย",
+            equipment_code: task.equipment_code || "",
+            pm_type: task.pm_type || ""
+          });
+        }
       });
 
       groupedWorkOrders = Array.from(groupMap.values());
+    }
+
+    // Toggle แสดงงานแผนล่วงหน้า (Future PM)
+    let showFuturePM = false;
+
+    const THAI_MONTHS = [
+      "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
+      "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
+    ];
+
+    function getWOType(wo) {
+      const t = String(wo.woType || "").toUpperCase();
+      const no = String(wo.woNo || "").toUpperCase();
+      const req = String(wo.reqNo || "").toUpperCase();
+      if (t.includes("BM") || no.startsWith("BM") || req.startsWith("BM")) return "BM";
+      if (t.includes("PM") || no.includes("PM") || (wo.workType && String(wo.workType).includes("PM"))) return "PM";
+      return "CM";
+    }
+
+    function isTechnicianFinished(wo) {
+      const s = String(wo.status || "").toLowerCase().trim();
+      return s.includes("pending approval") ||
+             s.includes("รอหัวหน้าอนุมัติ") ||
+             s.includes("รออนุมัติ") ||
+             s.includes("approved") ||
+             s.includes("อนุมัติแล้ว") ||
+             s.includes("pending acceptance") ||
+             s.includes("รอตรวจรับ") ||
+             s.includes("done") ||
+             s.includes("เสร็จ") ||
+             s.includes("closed") ||
+             s.includes("ปิดงาน") ||
+             s.includes("comp");
+    }
+
+    function isPendingApproval(wo) {
+      const s = String(wo.status || "").toLowerCase().trim();
+      return s.includes("pending approval") ||
+             s.includes("รอหัวหน้าอนุมัติ") ||
+             s.includes("รออนุมัติ");
+    }
+
+    function isUnfinished(wo) {
+      return !isTechnicianFinished(wo);
+    }
+
+    function isCurrentMonthOrOverdue(wo) {
+      const dateStr = wo.dueDate || wo.assignedDate || "";
+      if (!dateStr || dateStr === "-") return true;
+
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const currentMonth = now.getMonth(); // 0 - 11
+
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return true;
+
+      const y = d.getFullYear();
+      const m = d.getMonth();
+
+      if (y < currentYear) return true; // Overdue from previous year
+      if (y === currentYear && m <= currentMonth) return true; // Overdue or current month
+      return false; // Future month
+    }
+
+    function isFutureTask(wo) {
+      return !isCurrentMonthOrOverdue(wo);
+    }
+
+    function toggleFuturePMSwitch() {
+      showFuturePM = !showFuturePM;
+      const btn = document.getElementById("btnToggleFuturePM");
+      const label = document.getElementById("futurePMBtnLabel");
+      if (btn) {
+        if (showFuturePM) {
+          btn.classList.add("active");
+          if (label) label.textContent = "ซ่อนงานล่วงหน้า";
+        } else {
+          btn.classList.remove("active");
+          if (label) label.textContent = "แสดงงานล่วงหน้า";
+        }
+      }
+      renderStatsAndBadges();
+      renderWorkOrdersList();
     }
 
     /**
      * คำนวณสรุปสถิติและ Badge
      */
     function renderStatsAndBadges() {
-      let countAll = groupedWorkOrders.length;
-      let countProgress = 0;
+      const now = new Date();
+      const monthLabel = `${THAI_MONTHS[now.getMonth()]} ${now.getFullYear() + 543}`;
+      const monthEl = document.getElementById("currentMonthLabelText");
+      if (monthEl) monthEl.textContent = monthLabel;
+
+      let countBmPending = 0;
+      let countCmPending = 0;
+      let countPmPending = 0;
+      let countTotalPending = 0;
+      let countFuturePM = 0;
+      let countPendingApproval = 0;
       let countDone = 0;
-      let countPM = 0;
-      let countUrgent = 0;
 
       groupedWorkOrders.forEach(wo => {
-        const s = (wo.status || "").toLowerCase();
-        const p = (wo.priority || "").toLowerCase();
-        const t = (wo.woType || "").toUpperCase();
+        const type = getWOType(wo);
+        const unfinished = isUnfinished(wo);
+        const pendingApproval = isPendingApproval(wo);
+        const isCurrentOrPast = isCurrentMonthOrOverdue(wo);
+        const isFuture = isFutureTask(wo);
 
-        if (s.includes("done") || s.includes("เสร็จ") || s.includes("comp")) {
-          countDone++;
-        } else {
-          countProgress++;
+        if (pendingApproval) {
+          countPendingApproval++;
         }
 
-        if (t.includes("PM")) countPM++;
-        if (p.includes("urgent") || p.includes("high") || p.includes("ด่วน")) countUrgent++;
+        if (!unfinished) {
+          countDone++;
+          return;
+        }
+
+        if (isFuture && type === "PM") {
+          countFuturePM++;
+        }
+
+        // เฉพาะงานค้างเดือนปัจจุบัน (หรือรวมล่วงหน้าหากเปิด showFuturePM)
+        if (isCurrentOrPast || showFuturePM) {
+          if (type === "BM") countBmPending++;
+          else if (type === "CM") countCmPending++;
+          else if (type === "PM") countPmPending++;
+          countTotalPending++;
+        }
       });
 
-      document.getElementById("statAllCount").textContent = countAll;
-      document.getElementById("statProgressCount").textContent = countProgress;
-      document.getElementById("statDoneCount").textContent = countDone;
-      document.getElementById("activeTaskCount").textContent = countProgress;
+      // Quick Stats
+      const statBm = document.getElementById("statBmCount");
+      const statCm = document.getElementById("statCmCount");
+      const statPm = document.getElementById("statPmCount");
+      const statTot = document.getElementById("statTotalPendingCount");
+      const activeCount = document.getElementById("activeTaskCount");
+      const futureBadge = document.getElementById("futurePMCountBadge");
 
-      document.getElementById("badgeFilterAll").textContent = countAll;
-      document.getElementById("badgeFilterProgress").textContent = countProgress;
-      document.getElementById("badgeFilterPM").textContent = countPM;
-      document.getElementById("badgeFilterUrgent").textContent = countUrgent;
-      document.getElementById("badgeFilterDone").textContent = countDone;
+      if (statBm) statBm.textContent = countBmPending;
+      if (statCm) statCm.textContent = countCmPending;
+      if (statPm) statPm.textContent = countPmPending;
+      if (statTot) statTot.textContent = countTotalPending;
+      if (activeCount) activeCount.textContent = countTotalPending;
+      if (futureBadge) futureBadge.textContent = countFuturePM;
+
+      // Badges in Tabs
+      const badgeAll = document.getElementById("badgeFilterAll");
+      const badgeBM = document.getElementById("badgeFilterBM");
+      const badgeCM = document.getElementById("badgeFilterCM");
+      const badgePM = document.getElementById("badgeFilterPM");
+      const badgePending = document.getElementById("badgeFilterPendingApproval");
+      const badgeDone = document.getElementById("badgeFilterDone");
+
+      if (badgeAll) badgeAll.textContent = countTotalPending;
+      if (badgeBM) badgeBM.textContent = countBmPending;
+      if (badgeCM) badgeCM.textContent = countCmPending;
+      if (badgePM) badgePM.textContent = countPmPending;
+      if (badgePending) badgePending.textContent = countPendingApproval;
+      if (badgeDone) badgeDone.textContent = countDone;
     }
 
     /**
@@ -1086,24 +1327,36 @@
       const searchKeyword = (document.getElementById("searchInput")?.value || "").toLowerCase().trim();
 
       const filtered = groupedWorkOrders.filter(wo => {
-        // 1. Filter by Status / Type
-        const s = (wo.status || "").toLowerCase();
-        const p = (wo.priority || "").toLowerCase();
-        const t = (wo.woType || "").toUpperCase();
+        const type = getWOType(wo);
+        const unfinished = isUnfinished(wo);
+        const pendingApproval = isPendingApproval(wo);
+        const isCurrentOrPast = isCurrentMonthOrOverdue(wo);
 
-        if (currentFilter === "progress") {
-          if (s.includes("done") || s.includes("เสร็จ") || s.includes("comp")) return false;
+        // 1. Filter ตาม Tab ที่เลือก
+        if (currentFilter === "pending_approval") {
+          // หมวดรอหัวหน้าอนุมัติ
+          if (!pendingApproval) return false;
         } else if (currentFilter === "done") {
-          if (!s.includes("done") && !s.includes("เสร็จ") && !s.includes("comp")) return false;
-        } else if (currentFilter === "pm") {
-          if (!t.includes("PM")) return false;
-        } else if (currentFilter === "urgent") {
-          if (!p.includes("urgent") && !p.includes("high") && !p.includes("ด่วน")) return false;
+          // หมวดงานเสร็จสิ้นทั้งหมด
+          if (unfinished) return false;
+        } else {
+          // หมวดงานค้าง (ช่างยังทำไม่เสร็จ)
+          if (!unfinished) return false;
+
+          // กรองงานเดือนปัจจุบัน ยกเว้นเมื่อกดเปิดงานล่วงหน้า
+          if (!showFuturePM && !isCurrentOrPast) {
+            return false;
+          }
+
+          // กรองตามประเภทแท็บ
+          if (currentFilter === "bm" && type !== "BM") return false;
+          if (currentFilter === "cm" && type !== "CM") return false;
+          if (currentFilter === "pm" && type !== "PM") return false;
         }
 
         // 2. Filter by Search Query
         if (searchKeyword) {
-          const matchTarget = `${wo.woNo} ${wo.reqNo} ${wo.asset_code} ${wo.asset_name} ${wo.location} ${wo.workType} ${wo.department_name}`.toLowerCase();
+          const matchTarget = `${wo.woNo} ${wo.reqNo} ${wo.asset_code} ${wo.asset_name} ${wo.location} ${wo.workType} ${wo.department_name} ${wo.status}`.toLowerCase();
           if (!matchTarget.includes(searchKeyword)) return false;
         }
 
@@ -1111,11 +1364,20 @@
       });
 
       if (filtered.length === 0) {
+        let emptyTitle = "ไม่พบรายการงาน";
+        let emptyDesc = "ไม่มีรายการงานในหมวดนี้สำหรับเดือนปัจจุบัน";
+        if (currentFilter === "bm") emptyDesc = "ไม่มีงานเสียฉุกเฉิน (BM) ค้างในขณะนี้";
+        else if (currentFilter === "cm") emptyDesc = "ไม่มีงานแจ้งซ่อมทั่วไป (CM) ค้างในขณะนี้";
+        else if (currentFilter === "pm") emptyDesc = "ไม่มีงานบำรุงรักษา (PM) ค้างในรอบเดือนนี้ (แตะปุ่ม 'แสดงงานล่วงหน้า' เพื่อดูแผนงานอนาคต)";
+        else if (currentFilter === "pending_approval") emptyDesc = "ไม่มีรายการงานที่รอหัวหน้าอนุมัติในขณะนี้";
+        else if (currentFilter === "done") emptyDesc = "ยังไม่มีประวัติงานที่ปิดในรอบนี้";
+        else emptyDesc = "ไม่มีรายการงานค้างในขณะนี้";
+
         container.innerHTML = `
           <div class="empty-state">
-            <i class="fa-solid fa-clipboard-list"></i>
-            <p style="font-size: 13px; font-weight: 600; color: var(--text-main); margin-top: 4px;">ไม่พบใบงานที่ค้นหา</p>
-            <p style="font-size: 11.5px; margin-top: 2px;">ไม่มีรายการงานในหมวดนี้</p>
+            <i class="fa-solid fa-clipboard-check" style="font-size: 28px; color: #10b981; margin-bottom: 8px;"></i>
+            <p style="font-size: 13px; font-weight: 700; color: var(--text-main);">${emptyTitle}</p>
+            <p style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">${emptyDesc}</p>
           </div>
         `;
         return;
@@ -1123,14 +1385,26 @@
 
       let html = "";
       filtered.forEach(wo => {
-        const isPM = (wo.woType || "").toUpperCase().includes("PM");
-        const typeTagClass = isPM ? "tag-pm" : "tag-cm";
-        const typeLabel = isPM ? "PM (Preventive)" : "CM (Breakdown)";
+        const type = getWOType(wo);
+        const isFuture = isFutureTask(wo);
+        const unfinished = isUnfinished(wo);
+        const pendingApproval = isPendingApproval(wo);
+
+        let typeTagClass = "tag-cm";
+        let typeLabel = "CM (แจ้งซ่อม)";
+
+        if (type === "PM") {
+          typeTagClass = "tag-pm";
+          typeLabel = "PM (บำรุงรักษา)";
+        } else if (type === "BM") {
+          typeTagClass = "tag-bm";
+          typeLabel = "BM (Breakdown)";
+        }
 
         let priorityClass = "priority-medium";
         let priorityBadge = `<span class="badge" style="background: #eff6ff; color: #1d4ed8;">ปกติ</span>`;
         const p = (wo.priority || "").toLowerCase();
-        if (p.includes("urgent") || p.includes("ฉุกเฉิน")) {
+        if (p.includes("urgent") || p.includes("ฉุกเฉิน") || type === "BM") {
           priorityClass = "priority-urgent";
           priorityBadge = `<span class="badge" style="background: #fee2e2; color: #b91c1c;"><i class="fa-solid fa-fire"></i> ด่วนมาก</span>`;
         } else if (p.includes("high") || p.includes("สูง")) {
@@ -1141,32 +1415,42 @@
           priorityBadge = `<span class="badge" style="background: #ecfdf5; color: #15803d;">ต่ำ</span>`;
         }
 
-        const isDone = (wo.status || "").toLowerCase().includes("done") || (wo.status || "").toLowerCase().includes("comp");
-        const statusBadge = isDone 
-          ? `<span class="badge badge-completed"><i class="fa-solid fa-check"></i> เสร็จสิ้น</span>`
-          : `<span class="badge badge-progress"><i class="fa-solid fa-clock"></i> กำลังทำ</span>`;
+        const s = String(wo.status || "").toLowerCase().trim();
+        let statusBadge = "";
+        if (pendingApproval) {
+          statusBadge = `<span class="badge" style="background: #fef3c7; color: #b45309; border: 1px solid #fde68a;"><i class="fa-solid fa-hourglass-half"></i> รอหัวหน้าอนุมัติ</span>`;
+        } else if (s.includes("approved") || s.includes("pending acceptance") || s.includes("รอตรวจรับ")) {
+          statusBadge = `<span class="badge" style="background: #e0e7ff; color: #4338ca; border: 1px solid #c7d2fe;"><i class="fa-solid fa-clipboard-check"></i> รอผู้แจ้งตรวจรับ</span>`;
+        } else if (!unfinished) {
+          statusBadge = `<span class="badge badge-completed"><i class="fa-solid fa-check"></i> เสร็จสิ้น</span>`;
+        } else {
+          statusBadge = `<span class="badge badge-progress"><i class="fa-solid fa-clock"></i> กำลังทำ</span>`;
+        }
 
         // Subtasks preview list
         let subtasksHtml = "";
         if (wo.subtasks && wo.subtasks.length > 0) {
+          const isBMCard = type === "BM";
           const previewList = wo.subtasks.slice(0, 2);
+          const boxTitle = isBMCard ? "จุดที่ต้องตรวจสอบ/ขั้นตอนมาตรฐาน" : "จุดตรวจเช็ค";
           subtasksHtml = `
             <div class="wo-subtasks-preview">
               <div style="font-weight: 600; margin-bottom: 4px; color: var(--text-main); display: flex; justify-content: space-between; align-items: center;">
-                <span><i class="fa-solid fa-list-check" style="color: var(--primary); margin-right: 4px;"></i>จุดตรวจเช็ค (${wo.subtasks.length} รายการ):</span>
-                <span style="font-size: 10px; color: #64748b; font-weight: normal;">แตะจุดที่ต้องการเปิด</span>
+                <span><i class="fa-solid fa-list-check" style="color: ${isBMCard ? '#ef4444' : 'var(--primary)'}; margin-right: 4px;"></i>${boxTitle} (${wo.subtasks.length} รายการ):</span>
+                <span style="font-size: 10px; color: #64748b; font-weight: normal;">แตะเพื่อดูขั้นตอน</span>
               </div>
               ${previewList.map((st, sIdx) => {
-                const targetIdent = st.equipment_code || st.equipment || st.task_no || "";
-                return `
-                <div class="wo-subtask-item" onclick="openWorkOrderDetail('${wo.woNo}', '${encodeURIComponent(targetIdent)}')" title="แตะเพื่อเปิดกรอกข้อมูลจุดนี้โดยตรง">
-                  <i class="fa-regular fa-circle-dot" style="font-size: 8px; color: var(--primary);"></i>
+            const targetIdent = st.equipment_code || st.equipment || st.task_no || "";
+            return `
+                <div class="wo-subtask-item" onclick="openWorkOrderDetail('${wo.woNo}', '${encodeURIComponent(targetIdent)}')" title="แตะเพื่อเปิดดูรายละเอียดจุดนี้">
+                  <i class="fa-regular fa-circle-dot" style="font-size: 8px; color: ${isBMCard ? '#ef4444' : 'var(--primary)'};"></i>
                   <span style="font-weight: 600; color: #1e293b;">${escapeHtml(st.equipment)}</span>
-                  ${st.equipment_code ? `<span style="font-size: 10px; color: #64748b;">(${escapeHtml(st.equipment_code)})</span>` : ""}
+                  ${st.task_no ? `<span class="badge" style="font-size: 9.5px; background: #e0f2fe; color: #0369a1; padding: 1px 5px; border-radius: 4px; font-weight: 700;">${escapeHtml(st.task_no)}</span>` : ""}
+                  ${st.task_category ? `<span style="font-size: 10px; color: #475569; font-weight: 500;">(${escapeHtml(st.task_category)})</span>` : ""}
                   <i class="fa-solid fa-arrow-right" style="font-size: 9px; color: #94a3b8; margin-left: auto;"></i>
                 </div>
               `;
-              }).join("")}
+          }).join("")}
               ${wo.subtasks.length > 2 ? `
                 <div onclick="openWorkOrderDetail('${wo.woNo}', 'ALL')" style="font-size: 11px; color: var(--primary); font-weight: 700; margin-top: 5px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; padding: 2px 4px;" title="เปิดดูจุดตรวจเช็คทั้งหมด">
                   <span>+ ดูเพิ่มอีก ${wo.subtasks.length - 2} รายการ (เปิดดูทั้งหมด)</span>
@@ -1177,6 +1461,10 @@
           `;
         }
 
+        const isFinished = !unfinished;
+        const actionBtnLabel = isFinished ? "ดูรายละเอียดใบงาน" : "เปิดใบงาน / ปิดงาน";
+        const actionBtnIcon = isFinished ? "fa-file-lines" : "fa-folder-open";
+
         html += `
           <div class="wo-card ${priorityClass}">
             <div class="wo-header">
@@ -1184,6 +1472,7 @@
                 <div class="wo-number">
                   <span>${wo.woNo}</span>
                   <span class="wo-type-tag ${typeTagClass}">${typeLabel}</span>
+                  ${isFuture ? '<span class="future-plan-badge"><i class="fa-solid fa-calendar-arrow-up"></i> แผนล่วงหน้า</span>' : ''}
                 </div>
                 <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">
                   Ref Req: <strong>${wo.reqNo}</strong>
@@ -1210,10 +1499,10 @@
             ${subtasksHtml}
 
             <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: var(--text-sub); border-top: 1px dashed var(--border-color); padding-top: 8px; margin-top: 6px;">
-              <span><i class="fa-regular fa-calendar" style="margin-right: 4px;"></i>กำหนดเสร็จ: ${wo.dueDate}</span>
-              <button type="button" class="btn-card-action" onclick="openWorkOrderDetail('${wo.woNo}', 'ALL')" title="เปิดใบงานเพื่อดูและบันทึกปิดงาน">
-                <i class="fa-solid fa-folder-open"></i>
-                <span>เปิดใบงาน / ปิดงาน</span>
+              <span><i class="fa-regular fa-calendar" style="margin-right: 4px;"></i>กำหนดเสร็จ: ${wo.dueDate || '-'}</span>
+              <button type="button" class="btn-card-action" onclick="openWorkOrderDetail('${wo.woNo}', 'ALL')" title="${actionBtnLabel}">
+                <i class="fa-solid ${actionBtnIcon}"></i>
+                <span>${actionBtnLabel}</span>
                 <i class="fa-solid fa-chevron-right" style="font-size: 9px;"></i>
               </button>
             </div>
@@ -1237,6 +1526,11 @@
         const data = await CmmsApi.getWODrawerData(woNo);
         currentDrawerData = data;
 
+        // ตรวจสอบให้แน่ใจว่าโหลดรหัส Downtime แล้วสำหรับ CM Form
+        if (!cachedDowntimeCodes || cachedDowntimeCodes.length === 0) {
+          await loadDowntimeCodes();
+        }
+
         // Switch Screen State to Detail View
         document.getElementById("taskListView").style.display = "none";
         document.getElementById("detailDrawerContainer").style.display = "block";
@@ -1246,6 +1540,7 @@
         document.getElementById("pageTitle").textContent = woNo;
         document.getElementById("pageSubtitle").textContent = "บันทึกผลการปฏิบัติงาน";
 
+        updateStickyActionBar(data.wo || targetWO || {});
         renderDrawerHeader(data);
         renderWOSpecificBody(data, targetKeyOrAction);
         renderExpenses(data);
@@ -1302,6 +1597,117 @@
     }
 
     /**
+     * Check if a Work Order is Preventive Maintenance (PM) vs Corrective/Breakdown (CM/BM)
+     */
+    function isPMWorkOrder(wo, data) {
+      const targetWO = groupedWorkOrders.find(w => w.woNo === ((wo && (wo.woNo || wo.wo_code)) || currentActiveWO));
+      const typeStr = (
+        (wo && (wo.woType || wo.workorder_type || wo.wo_type || wo.request_type)) ||
+        (targetWO && (targetWO.woType || targetWO.workorder_type)) ||
+        ""
+      ).trim().toUpperCase();
+
+      const codeStr = ((wo && (wo.woNo || wo.wo_code)) || currentActiveWO || "").trim().toUpperCase();
+
+      // 1. Explicit PM indicators
+      if (typeStr.includes("PM") || codeStr.startsWith("PM")) {
+        return true;
+      }
+
+      // 2. Explicit Non-PM (BM / CM / Breakdown / Corrective)
+      if (
+        typeStr.includes("BM") ||
+        typeStr.includes("CM") ||
+        typeStr.includes("BREAKDOWN") ||
+        typeStr.includes("CORRECTIVE") ||
+        codeStr.startsWith("BM") ||
+        codeStr.startsWith("CM")
+      ) {
+        return false;
+      }
+
+      // 3. Check workType text
+      const workTypeStr = ((wo && wo.workType) || (targetWO && targetWO.workType) || "").toUpperCase();
+      if (workTypeStr.includes("PM") || workTypeStr.includes("PREVENTIVE") || workTypeStr.includes("บำรุงรักษา")) {
+        return true;
+      }
+
+      return false;
+    }
+
+    /**
+     * Check if a Work Order is Breakdown Maintenance (BM)
+     */
+    function isBMWorkOrder(wo, data) {
+      const targetWO = groupedWorkOrders.find(w => w.woNo === ((wo && (wo.woNo || wo.wo_code)) || currentActiveWO));
+      const typeStr = (
+        (wo && (wo.woType || wo.workorder_type || wo.wo_type || wo.request_type)) ||
+        (targetWO && (targetWO.woType || targetWO.workorder_type)) ||
+        ""
+      ).trim().toUpperCase();
+
+      const codeStr = ((wo && (wo.woNo || wo.wo_code)) || currentActiveWO || "").trim().toUpperCase();
+
+      if (typeStr.includes("BM") || typeStr.includes("BREAKDOWN") || codeStr.startsWith("BM")) {
+        return true;
+      }
+
+      const workTypeStr = ((wo && wo.workType) || (targetWO && targetWO.workType) || "").toUpperCase();
+      if (workTypeStr.includes("BM") || workTypeStr.includes("BREAKDOWN")) {
+        return true;
+      }
+
+      return false;
+    }
+
+    /**
+     * อัปเดต Sticky Action Bar ด้านล่างของ Drawer ตามสถานะใบงาน
+     */
+    function updateStickyActionBar(wo) {
+      const bar = document.getElementById("stickyActionBar");
+      if (!bar) return;
+      const s = String(wo.status || wo.workorderStatus || "").toLowerCase().trim();
+      if (s.includes("pending approval") || s.includes("รอหัวหน้าอนุมัติ") || s.includes("รออนุมัติ")) {
+        bar.innerHTML = `
+          <button type="button" class="header-icon-btn" onclick="goBackToList()" style="width: 44px; height: 44px;" title="ย้อนกลับ">
+            <i class="fa-solid fa-arrow-left"></i>
+          </button>
+          <div style="flex: 1; text-align: center; font-size: 12.5px; font-weight: 700; color: #b45309; background: #fffbeb; border: 1px solid #fde68a; padding: 10px 14px; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+            <i class="fa-solid fa-hourglass-half"></i> ช่างส่งตรวจแล้ว รอหัวหน้าอนุมัติ
+          </div>
+        `;
+      } else if (s.includes("approved") || s.includes("pending acceptance") || s.includes("รอตรวจรับ")) {
+        bar.innerHTML = `
+          <button type="button" class="header-icon-btn" onclick="goBackToList()" style="width: 44px; height: 44px;" title="ย้อนกลับ">
+            <i class="fa-solid fa-arrow-left"></i>
+          </button>
+          <div style="flex: 1; text-align: center; font-size: 12.5px; font-weight: 700; color: #4338ca; background: #eef2ff; border: 1px solid #c7d2fe; padding: 10px 14px; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+            <i class="fa-solid fa-clipboard-check"></i> หัวหน้าอนุมัติแล้ว รอผู้แจ้งตรวจรับ
+          </div>
+        `;
+      } else if (s.includes("done") || s.includes("เสร็จ") || s.includes("closed") || s.includes("comp")) {
+        bar.innerHTML = `
+          <button type="button" class="header-icon-btn" onclick="goBackToList()" style="width: 44px; height: 44px;" title="ย้อนกลับ">
+            <i class="fa-solid fa-arrow-left"></i>
+          </button>
+          <div style="flex: 1; text-align: center; font-size: 12.5px; font-weight: 700; color: #15803d; background: #f0fdf4; border: 1px solid #bbf7d0; padding: 10px 14px; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+            <i class="fa-solid fa-circle-check"></i> ใบงานปิดงานเสร็จสมบูรณ์แล้ว
+          </div>
+        `;
+      } else {
+        bar.innerHTML = `
+          <button type="button" class="header-icon-btn" onclick="goBackToList()" style="width: 44px; height: 44px;" title="ย้อนกลับ">
+            <i class="fa-solid fa-arrow-left"></i>
+          </button>
+          <button type="button" class="btn-close-wo" id="btnCloseWorkOrder" onclick="openCloseModal()">
+            <i class="fa-solid fa-circle-check"></i>
+            <span>ปิดทั้งใบงาน (Complete WO)</span>
+          </button>
+        `;
+      }
+    }
+
+    /**
      * Render Top Header Info of WO Detail
      */
     function renderDrawerHeader(data) {
@@ -1311,19 +1717,19 @@
       const asset = data.assetInfo || {};
 
       const targetWO = groupedWorkOrders.find(w => w.woNo === (wo.woNo || wo.wo_code || currentActiveWO));
-      const isPM = (
-        (wo.woType || "").toUpperCase().includes("PM") ||
-        (wo.request_type || "").toUpperCase().includes("PM") ||
-        (wo.wo_type || "").toUpperCase().includes("PM") ||
-        (wo.workType || "").toUpperCase().includes("PM") ||
-        (targetWO && (targetWO.woType || "").toUpperCase().includes("PM")) ||
-        (currentActiveWO || "").toUpperCase().includes("PM") ||
-        (data.components && data.components.length > 0)
-      );
+      const isPM = isPMWorkOrder(wo, data);
 
-      const isDone = (wo.status || (targetWO && targetWO.status) || "").toLowerCase().includes("done") || 
-                     (wo.status || "").toLowerCase().includes("comp") || 
-                     (wo.status || "").toLowerCase().includes("เสร็จ");
+      const rawStatus = String((wo && (wo.status || wo.workorderStatus)) || (targetWO && targetWO.status) || "").toLowerCase().trim();
+      let statusBadgeHeader = "";
+      if (rawStatus.includes("pending approval") || rawStatus.includes("รอหัวหน้าอนุมัติ") || rawStatus.includes("รออนุมัติ")) {
+        statusBadgeHeader = `<span class="badge" style="background: #fef3c7; color: #b45309; border: 1px solid #fde68a; font-size: 11px;"><i class="fa-solid fa-hourglass-half"></i> รอหัวหน้าอนุมัติ</span>`;
+      } else if (rawStatus.includes("approved") || rawStatus.includes("pending acceptance") || rawStatus.includes("รอตรวจรับ")) {
+        statusBadgeHeader = `<span class="badge" style="background: #e0e7ff; color: #4338ca; border: 1px solid #c7d2fe; font-size: 11px;"><i class="fa-solid fa-clipboard-check"></i> รอผู้แจ้งตรวจรับ</span>`;
+      } else if (rawStatus.includes("done") || rawStatus.includes("เสร็จ") || rawStatus.includes("closed") || rawStatus.includes("comp")) {
+        statusBadgeHeader = `<span class="badge badge-completed" style="font-size: 11px;"><i class="fa-solid fa-check"></i> เสร็จสิ้น</span>`;
+      } else {
+        statusBadgeHeader = `<span class="badge badge-progress" style="font-size: 11px;"><i class="fa-solid fa-clock"></i> กำลังดำเนินการ</span>`;
+      }
 
       const woCode = wo.woNo || wo.wo_code || currentActiveWO || "-";
       const reqCode = req.reqNo || req.request_code || wo.request_code || wo.reqNo || (targetWO && targetWO.reqNo) || "-";
@@ -1348,9 +1754,7 @@
             </div>
           </div>
           <div style="text-align: right;">
-            <span class="badge ${isDone ? 'badge-completed' : 'badge-progress'}" style="font-size: 11px;">
-              ${isDone ? '<i class="fa-solid fa-check"></i> เสร็จสิ้น' : '<i class="fa-solid fa-clock"></i> กำลังดำเนินการ'}
-            </span>
+            ${statusBadgeHeader}
           </div>
         </div>
 
@@ -1383,15 +1787,7 @@
       const wo = data.wo || {};
       const targetWO = groupedWorkOrders.find(w => w.woNo === (wo.woNo || wo.wo_code || currentActiveWO));
 
-      const isPM = (
-        (wo.woType || "").toUpperCase().includes("PM") ||
-        (wo.request_type || "").toUpperCase().includes("PM") ||
-        (wo.wo_type || "").toUpperCase().includes("PM") ||
-        (wo.workType || "").toUpperCase().includes("PM") ||
-        (targetWO && (targetWO.woType || "").toUpperCase().includes("PM")) ||
-        (currentActiveWO || "").toUpperCase().includes("PM") ||
-        (data.components && data.components.length > 0)
-      );
+      const isPM = isPMWorkOrder(wo, data);
 
       if (isPM) {
         // ================= PM: ACCORDION VIEW =================
@@ -1452,7 +1848,7 @@
                     ${escapeHtml(comp.equipment_code || comp.component_code || '')}
                   </span>
                   <span class="acc-comp-name">
-                    ${escapeHtml(comp.equipment_name || comp.component_name || comp.equipment || `อุปกรณ์ชิ้นที่ ${idx+1}`)}
+                    ${escapeHtml(comp.equipment_name || comp.component_name || comp.equipment || `อุปกรณ์ชิ้นที่ ${idx + 1}`)}
                   </span>
                   ${comp.task_no ? `<span class="badge-task-no">${escapeHtml(comp.task_no)}</span>` : ""}
                   ${comp.pm_type ? `<span class="badge-pm-type">${escapeHtml(comp.pm_type)}</span>` : ""}
@@ -1576,15 +1972,89 @@
       } else {
         // ================= CM / BREAKDOWN: UNIFIED CLOSING FORM =================
         const closing = data.closingForm || {};
+        const req = data.request || {};
+        const targetWO = groupedWorkOrders.find(w => w.woNo === (wo.woNo || wo.wo_code || currentActiveWO));
+        const isBM = isBMWorkOrder(wo, data);
+
+        const now = new Date();
+        const defaultDate = closing.endDate ? closing.endDate.split("T")[0] : `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        let defaultTime = "00:00";
+        if (closing.endDate && closing.endDate.includes("T")) {
+          defaultTime = closing.endDate.split("T")[1].substring(0, 5);
+        } else {
+          defaultTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+        }
+
+        const bmTasks = data.bmStandardTasks || (data.bmStandardTask ? [data.bmStandardTask] : []);
+        let bmTaskHtml = "";
+        if (isBM && bmTasks.length > 0) {
+          window.activeBMTasks = bmTasks;
+          const currentTask = bmTasks[0];
+          const stepList = currentTask.steps || [];
+
+          // ปุ่มเลือก Task แสดงแค่รหัส Task เช่น T001, T002
+          const taskButtonsHtml = bmTasks.map((t, idx) => `
+            <button type="button" 
+                    id="btnBMTask_${idx}" 
+                    class="bm-task-pill ${idx === 0 ? 'active' : ''}" 
+                    onclick="selectBMTask(${idx})" 
+                    style="padding: 4px 10px; font-size: 11px; font-weight: 700; border-radius: 6px; cursor: pointer; transition: all 0.2s; border: 1px solid ${idx === 0 ? '#15803d' : '#86efac'}; background: ${idx === 0 ? '#166534' : '#ffffff'}; color: ${idx === 0 ? '#ffffff' : '#15803d'};">
+              ${escapeHtml(t.task_no || `T${String(idx+1).padStart(3, '0')}`)}
+            </button>
+          `).join('');
+
+          bmTaskHtml = `
+            <div class="bm-task-box" style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
+                <span style="font-size: 12.5px; font-weight: 700; color: #166534; display: flex; align-items: center; gap: 6px;">
+                  <i class="fa-solid fa-clipboard-list" style="color: #15803d; font-size: 14px;"></i>
+                  ขั้นตอนมาตรฐาน (Standard Steps)
+                </span>
+                
+                <!-- ปุ่มเลือก Task รหัส T001, T002 -->
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span style="font-size: 10.5px; color: #15803d; font-weight: 600;">เลือก Task:</span>
+                  <div id="bmTaskButtonsContainer" style="display: inline-flex; gap: 4px;">
+                    ${taskButtonsHtml}
+                  </div>
+                </div>
+              </div>
+
+              <!-- ข้อมูลชิ้นส่วนและหมวดหมู่ของ Task ปัจจุบัน -->
+              <div style="font-size: 11.5px; color: #374151; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px;">
+                <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                  <span style="font-weight: 600; color: #1f2937;"><i class="fa-solid fa-puzzle-piece" style="margin-right: 4px; color: #0284c7;"></i>ชิ้นส่วน:</span>
+                  <span style="background: #ffffff; padding: 2px 8px; border-radius: 4px; border: 1px solid #e2e8f0; font-weight: 600; color: #0f172a;">
+                    ${escapeHtml(currentTask.component_name || currentTask.equipment_name || currentTask.component_code || '')}
+                  </span>
+                  ${currentTask.machine_group && currentTask.component_group ? `
+                    <span style="font-size: 10.5px; color: #64748b;">(กลุ่ม: ${escapeHtml(currentTask.machine_group)} / ${escapeHtml(currentTask.component_group)})</span>
+                  ` : ''}
+                </div>
+                <span id="bmActiveCategoryBadge" class="badge" style="background: #dcfce7; color: #15803d; font-size: 10.5px; font-weight: 700; border: 1px solid #86efac; padding: 2px 8px; border-radius: 6px;">
+                  ${escapeHtml(currentTask.task_category ? `หมวดหมู่: ${currentTask.task_category}` : 'ตรวจ-ปรับแต่ง')}
+                </span>
+              </div>
+
+              <!-- รายการขั้นตอน (เปลี่ยนตาม Task ที่เลือก) -->
+              <div id="bmTaskStepsContent" style="background: #ffffff; border: 1px solid #dcfce7; border-radius: 8px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; transition: opacity 0.2s;">
+                ${renderBMStepsHtml(stepList)}
+              </div>
+            </div>
+          `;
+        }
+
         container.innerHTML = `
           <div class="card" style="margin-top: 14px;">
             <div class="card-header">
               <span class="card-title">
                 <i class="fa-solid fa-wrench" style="color: #ef4444;"></i>
-                บันทึกการซ่อมแซม (Breakdown Report)
+                บันทึกการซ่อมแซม (${isBM ? 'Breakdown Maintenance Report' : 'Corrective Maintenance Report'})
               </span>
-              <span style="font-size: 10.5px; color: var(--text-muted);">CM Form</span>
+              <span class="badge ${isBM ? 'tag-bm' : 'tag-cm'}" style="font-size: 10.5px;">${isBM ? 'BM Form' : 'CM Form'}</span>
             </div>
+
+            ${bmTaskHtml}
 
             <div class="form-group">
               <label class="form-label">สาเหตุของปัญหา / ความเสียหาย (Root Cause) <span class="required">*</span></label>
@@ -1596,14 +2066,74 @@
               <textarea id="cmActionTaken" class="form-textarea" placeholder="ระบุขั้นตอนการแก้ไข เช่น เปลี่ยนอะไหล่, ปรับเทียบระบบ...">${closing.actionTaken || ''}</textarea>
             </div>
 
+            <!-- Repair Finished Date & Time (แยกวันที่ และเวลา 24 ชม.) -->
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; margin-bottom: 12px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <label class="form-label" style="margin-bottom: 0; font-weight: 700; color: #1e293b; font-size: 12px;">
+                  <i class="fa-solid fa-clock" style="color: #0284c7; margin-right: 5px;"></i>วันที่และเวลาซ่อมเสร็จ (24 ชม.)
+                </label>
+                <span class="badge ${isBM ? 'tag-bm' : 'tag-cm'}" style="font-size: 10px; padding: 2px 8px;">
+                  ${isBM ? 'BM คำนวณ Downtime อัตโนมัติ' : 'เวลาซ่อมเสร็จสิ้น'}
+                </span>
+              </div>
+
+              <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 10px;">
+                <div>
+                  <label style="font-size: 11px; color: #64748b; margin-bottom: 3px; display: block; font-weight: 600;">
+                    <i class="fa-regular fa-calendar" style="margin-right: 3px;"></i>วันที่ซ่อมเสร็จ
+                  </label>
+                  <input type="date" id="cmRepairDate" class="form-input" value="${defaultDate}" onchange="recalcDowntimeAuto()" oninput="recalcDowntimeAuto()" />
+                </div>
+                <div>
+                  <label style="font-size: 11px; color: #64748b; margin-bottom: 3px; display: block; font-weight: 600;">
+                    <i class="fa-regular fa-clock" style="margin-right: 3px;"></i>เวลาซ่อมเสร็จ (24:00)
+                  </label>
+                  <input type="time" id="cmRepairTime" class="form-input" value="${defaultTime}" onchange="recalcDowntimeAuto()" oninput="recalcDowntimeAuto()" />
+                </div>
+              </div>
+
+              <!-- Calculation info summary box -->
+              <div id="cmDowntimeCalcInfo" style="margin-top: 8px; font-size: 11.5px; line-height: 1.4; color: #0369a1; background: #e0f2fe; border: 1px solid #bae6fd; border-radius: 6px; padding: 6px 10px;">
+              </div>
+            </div>
+
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
               <div class="form-group">
                 <label class="form-label">เวลาที่ใช้ซ่อม (Work Time นาที)</label>
                 <input type="number" id="cmWorkTime" class="form-input" placeholder="นาที" value="${closing.workTimeMinutes || 30}" />
               </div>
               <div class="form-group">
-                <label class="form-label">เครื่องหยุดทำงาน (Downtime นาที)</label>
-                <input type="number" id="cmDowntime" class="form-input" placeholder="นาที" value="${closing.downtimeMinutes || 45}" />
+                <label class="form-label">
+                  เครื่องหยุดทำงาน (Downtime นาที)
+                  <span style="font-size: 10px; color: #d97706; font-weight: normal;">(Auto คำนวณ)</span>
+                </label>
+                <input type="number" id="cmDowntime" class="form-input" placeholder="นาที" value="${closing.downtimeMinutes || 0}" />
+              </div>
+            </div>
+
+            <!-- Downtime Code Selection (Dropdown + Quick Chips) -->
+            <div class="form-group" style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; padding: 12px; margin-bottom: 14px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <label class="form-label" style="margin-bottom: 0; color: #92400e; font-weight: 700;">
+                  <i class="fa-solid fa-triangle-exclamation" style="color: #d97706; margin-right: 5px;"></i>รหัสเครื่องหยุดทำงาน (Downtime Code) ${isBM ? '<span class="required" style="color: #ef4444; font-weight: 700;">* (บังคับสำหรับ BM)</span>' : ''}
+                </label>
+                <span id="cmSelectedDowntimeBadge" style="font-size: 11px; font-weight: 700; color: #b45309; background: #fef3c7; border: 1px solid #fcd34d; padding: 2px 8px; border-radius: 6px; display: ${closing.downtimeCode ? 'inline-block' : 'none'};">
+                  ${closing.downtimeCode || ''}
+                </span>
+              </div>
+
+              <!-- Select Dropdown -->
+              <select id="cmDowntimeCode" class="form-input" style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 12.5px; background: #ffffff; color: #1e293b; outline: none; margin-bottom: 8px;" onchange="handleDowntimeCodeChange(this.value)">
+                <option value="">-- กรุณาเลือกรหัส Downtime Code --</option>
+                ${renderDowntimeOptions(closing.downtimeCode)}
+              </select>
+
+              <!-- Quick Select Buttons/Chips -->
+              <div style="font-size: 11px; color: #b45309; font-weight: 600; margin-bottom: 5px;">
+                <i class="fa-solid fa-hand-pointer" style="margin-right: 4px;"></i>หรือกดเลือกด่วน:
+              </div>
+              <div id="cmDowntimeChipsContainer" style="display: flex; flex-wrap: wrap; gap: 6px;">
+                ${renderDowntimeChips(closing.downtimeCode)}
               </div>
             </div>
 
@@ -1637,7 +2167,174 @@
 
           </div>
         `;
+
+        // คำนวณ Downtime เริ่มต้นทันทีหลังแสดงฟอร์ม
+        setTimeout(() => {
+          recalcDowntimeAuto();
+        }, 50);
       }
+    }
+
+    /**
+     * =========================================================
+     * DOWNTIME AUTO-CALCULATION HELPER
+     * =========================================================
+     */
+    function recalcDowntimeAuto() {
+      const data = currentDrawerData || {};
+      const req = data.request || {};
+      const wo = data.wo || {};
+      const closing = data.closingForm || {};
+
+      // 1. หาเวลาจุดเริ่มต้นแจ้งซ่อม (Start of Downtime)
+      // ลำดับความสำคัญ: req.created_at -> closing.requestCreatedAt -> wo.created_at -> req.request_date
+      let startRaw = req.created_at || closing.requestCreatedAt || wo.created_at;
+      if (!startRaw && req.request_date) {
+        startRaw = `${req.request_date}T08:00:00`;
+      }
+
+      const dateVal = document.getElementById("cmRepairDate")?.value;
+      const timeVal = document.getElementById("cmRepairTime")?.value;
+      const downtimeInput = document.getElementById("cmDowntime");
+      const infoEl = document.getElementById("cmDowntimeCalcInfo");
+
+      if (!dateVal || !timeVal || !startRaw) {
+        if (infoEl) infoEl.style.display = "none";
+        return;
+      }
+
+      const startDate = new Date(startRaw);
+      const endDate = new Date(`${dateVal}T${timeVal}:00`);
+
+      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+        if (infoEl) infoEl.style.display = "none";
+        return;
+      }
+
+      const diffMs = endDate.getTime() - startDate.getTime();
+      const diffMinutes = Math.max(0, Math.round(diffMs / (1000 * 60)));
+
+      if (downtimeInput) {
+        downtimeInput.value = diffMinutes;
+      }
+
+      const hours = Math.floor(diffMinutes / 60);
+      const mins = diffMinutes % 60;
+      const timeText = hours > 0 ? `${hours} ชม. ${mins} นาที` : `${mins} นาที`;
+
+      if (infoEl) {
+        infoEl.style.display = "block";
+        const startFormatted = startDate.toLocaleString("th-TH", {
+          year: "numeric", month: "short", day: "numeric",
+          hour: "2-digit", minute: "2-digit", hour12: false
+        });
+        const endFormatted = endDate.toLocaleString("th-TH", {
+          year: "numeric", month: "short", day: "numeric",
+          hour: "2-digit", minute: "2-digit", hour12: false
+        });
+
+        infoEl.innerHTML = `
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <div>
+              <i class="fa-solid fa-calculator" style="margin-right: 4px;"></i>
+              <strong>คำนวณ Downtime อัตโนมัติ:</strong> <span style="font-weight: 800; color: #0284c7; font-size: 12.5px;">${diffMinutes.toLocaleString()} นาที</span> (~${timeText})
+            </div>
+          </div>
+          <div style="font-size: 10.5px; opacity: 0.9; margin-top: 3px;">
+            <i class="fa-regular fa-bell" style="margin-right: 3px;"></i>เวลาแจ้งซ่อม: <strong>${startFormatted}</strong> &rarr; เวลาซ่อมเสร็จ: <strong>${endFormatted}</strong>
+          </div>
+        `;
+      }
+    }
+
+    /**
+     * =========================================================
+     * DOWNTIME CODES HELPER FUNCTIONS
+     * =========================================================
+     */
+    let cachedDowntimeCodes = [];
+
+    async function loadDowntimeCodes() {
+      try {
+        if (!cachedDowntimeCodes || cachedDowntimeCodes.length === 0) {
+          const res = await CmmsApi.getLookupDowntimeCodes();
+          if (res && res.status === "success" && Array.isArray(res.data) && res.data.length > 0) {
+            cachedDowntimeCodes = res.data;
+          }
+        }
+      } catch (e) {
+        console.warn("loadDowntimeCodes error:", e);
+      }
+    }
+
+    function renderDowntimeOptions(selectedCode = "") {
+      if (!cachedDowntimeCodes || cachedDowntimeCodes.length === 0) {
+        if (selectedCode) {
+          return `<option value="${escapeHtml(selectedCode)}" selected>${escapeHtml(selectedCode)}</option>`;
+        }
+        return '';
+      }
+      return cachedDowntimeCodes.map(item => {
+        const code = item.code || item.downtime_code || "";
+        const label = item.label || (item.name ? `${code} - ${item.name}` : code);
+        const isSel = (code === selectedCode) ? 'selected' : '';
+        return `<option value="${escapeHtml(code)}" ${isSel}>${escapeHtml(label)}</option>`;
+      }).join("");
+    }
+
+    function renderDowntimeChips(selectedCode = "") {
+      if (!cachedDowntimeCodes || cachedDowntimeCodes.length === 0) {
+        return '<span style="font-size: 11px; color: #94a3b8;"><i class="fa-solid fa-spinner animate-spin"></i> กำลังโหลดรหัส Downtime...</span>';
+      }
+      return cachedDowntimeCodes.map(item => {
+        const code = item.code || item.downtime_code || "";
+        const name = item.name || item.downtime_name || "";
+        const isSel = (code === selectedCode);
+        const activeBg = isSel ? '#d97706' : '#ffffff';
+        const activeColor = isSel ? '#ffffff' : '#475569';
+        const activeBorder = isSel ? '#b45309' : '#e2e8f0';
+        return `
+          <button type="button" class="btn-downtime-chip" data-code="${escapeHtml(code)}" onclick="selectDowntimeChip('${escapeHtml(code)}')"
+            style="background: ${activeBg}; color: ${activeColor}; border: 1px solid ${activeBorder}; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: all 0.15s ease;">
+            <i class="fa-solid fa-tag" style="font-size: 9px; opacity: 0.7;"></i>
+            <span>${escapeHtml(code)}</span>
+            ${name ? `<span style="font-weight: 400; font-size: 10px; opacity: 0.85;">(${escapeHtml(name)})</span>` : ''}
+          </button>
+        `;
+      }).join("");
+    }
+
+    function selectDowntimeChip(code) {
+      const selectEl = document.getElementById("cmDowntimeCode");
+      if (selectEl) {
+        selectEl.value = code;
+        handleDowntimeCodeChange(code);
+      }
+    }
+
+    function handleDowntimeCodeChange(code) {
+      const badge = document.getElementById("cmSelectedDowntimeBadge");
+      if (badge) {
+        if (code) {
+          badge.textContent = code;
+          badge.style.display = "inline-block";
+        } else {
+          badge.style.display = "none";
+        }
+      }
+      const chips = document.querySelectorAll(".btn-downtime-chip");
+      chips.forEach(chip => {
+        const chipCode = chip.getAttribute("data-code");
+        if (chipCode === code) {
+          chip.style.background = "#d97706";
+          chip.style.color = "#ffffff";
+          chip.style.borderColor = "#b45309";
+        } else {
+          chip.style.background = "#ffffff";
+          chip.style.color = "#475569";
+          chip.style.borderColor = "#e2e8f0";
+        }
+      });
     }
 
     function renderExpenses(data) {
@@ -1819,6 +2516,58 @@
     }
 
     /**
+     * เรนเดอร์รายการขั้นตอนย่อยของงาน BM
+     */
+    function renderBMStepsHtml(stepList) {
+      if (!stepList || stepList.length === 0) {
+        return `<div style="font-size: 11px; color: #64748b; padding: 4px 0;">ไม่มีขั้นตอนย่อยที่บันทึกไว้ในระบบ</div>`;
+      }
+      return stepList.map(s => `
+        <div style="display: flex; align-items: flex-start; gap: 8px; font-size: 12px; line-height: 1.45;">
+          <span style="min-width: 20px; height: 20px; background: #22c55e; color: #ffffff; border-radius: 50%; font-size: 10px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; margin-top: 1px; flex-shrink: 0;">
+            ${s.stepNo || s.step || 1}
+          </span>
+          <span style="color: #1e293b; font-weight: 500;">${escapeHtml(s.stepName || s.desc || '')}</span>
+        </div>
+      `).join('');
+    }
+
+    /**
+     * เปลี่ยน Task งาน BM เมื่อช่างกดปุ่ม T001, T002 ฯลฯ
+     */
+    function selectBMTask(idx) {
+      if (!window.activeBMTasks || !window.activeBMTasks[idx]) return;
+      const targetTask = window.activeBMTasks[idx];
+
+      // ปรับสถานะปุ่มที่เลือก (Active / Inactive)
+      window.activeBMTasks.forEach((_, i) => {
+        const btn = document.getElementById(`btnBMTask_${i}`);
+        if (btn) {
+          const isActive = (i === idx);
+          btn.style.background = isActive ? '#166534' : '#ffffff';
+          btn.style.color = isActive ? '#ffffff' : '#15803d';
+          btn.style.borderColor = isActive ? '#15803d' : '#86efac';
+        }
+      });
+
+      // ปรับข้อความหมวดหมู่ของ Task
+      const catBadge = document.getElementById("bmActiveCategoryBadge");
+      if (catBadge) {
+        catBadge.textContent = targetTask.task_category ? `หมวดหมู่: ${targetTask.task_category}` : 'ตรวจ-ปรับแต่ง';
+      }
+
+      // เปลี่ยนเนื้อหาขั้นตอน Step 1-10 พร้อม Transition นุ่มนวล
+      const stepsContainer = document.getElementById("bmTaskStepsContent");
+      if (stepsContainer) {
+        stepsContainer.style.opacity = '0.4';
+        setTimeout(() => {
+          stepsContainer.innerHTML = renderBMStepsHtml(targetTask.steps || []);
+          stepsContainer.style.opacity = '1';
+        }, 120);
+      }
+    }
+
+    /**
      * ดึงขั้นตอน Task List (PM Steps) มาแสดงในกล่องอ้างอิง
      */
     async function loadTaskStepsForPM(safeKey, taskNo, pmType) {
@@ -1925,6 +2674,29 @@
      * =========================================================
      */
     function openCloseModal() {
+      const wo = (currentDrawerData && currentDrawerData.wo) || {};
+      const isBM = isBMWorkOrder(wo, currentDrawerData);
+
+      // ตรวจสอบเงื่อนไขใบงาน Type BM: บังคับเลือก Downtime Code ก่อนบันทึก
+      if (isBM) {
+        const dtCode = document.getElementById("cmDowntimeCode")?.value?.trim();
+        if (!dtCode) {
+          alert("⚠️ กรุณาเลือกรหัสเครื่องหยุดทำงาน (Downtime Code) ก่อนทำการบันทึกปิดใบงาน BM");
+          const dtSelect = document.getElementById("cmDowntimeCode");
+          if (dtSelect) {
+            dtSelect.focus();
+            dtSelect.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            dtSelect.style.border = "2px solid #ef4444";
+            dtSelect.style.boxShadow = "0 0 0 3px rgba(239, 68, 68, 0.25)";
+            setTimeout(() => {
+              dtSelect.style.border = "1px solid #cbd5e1";
+              dtSelect.style.boxShadow = "none";
+            }, 3500);
+          }
+          return;
+        }
+      }
+
       const modal = document.getElementById("closeWOModal");
       const woText = document.getElementById("modalWoNoText");
       if (woText) woText.textContent = currentActiveWO || "-";
@@ -1938,6 +2710,33 @@
 
     async function handleFinalCloseSubmit(e) {
       e.preventDefault();
+
+      const wo = (currentDrawerData && currentDrawerData.wo) || {};
+      const targetWO = groupedWorkOrders.find(w => w.woNo === currentActiveWO);
+      const isPM = isPMWorkOrder(wo, currentDrawerData);
+      const isBM = isBMWorkOrder(wo, currentDrawerData);
+
+      // ตรวจสอบกรณี BM ซ้ำอีกครั้งก่อนส่ง API
+      if (isBM) {
+        const dtCode = document.getElementById("cmDowntimeCode")?.value?.trim();
+        if (!dtCode) {
+          closeCloseModal();
+          alert("⚠️ กรุณาเลือกรหัสเครื่องหยุดทำงาน (Downtime Code) ก่อนทำการบันทึกปิดใบงาน BM");
+          const dtSelect = document.getElementById("cmDowntimeCode");
+          if (dtSelect) {
+            dtSelect.focus();
+            dtSelect.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            dtSelect.style.border = "2px solid #ef4444";
+            dtSelect.style.boxShadow = "0 0 0 3px rgba(239, 68, 68, 0.25)";
+            setTimeout(() => {
+              dtSelect.style.border = "1px solid #cbd5e1";
+              dtSelect.style.boxShadow = "none";
+            }, 3500);
+          }
+          return;
+        }
+      }
+
       closeCloseModal();
 
       LiffAuth.showLoading("กำลังส่งตรวจงาน...", currentActiveWO);
@@ -1945,15 +2744,7 @@
       try {
         const wo = (currentDrawerData && currentDrawerData.wo) || {};
         const targetWO = groupedWorkOrders.find(w => w.woNo === currentActiveWO);
-        const isPM = (
-          (wo.woType || "").toUpperCase().includes("PM") ||
-          (wo.request_type || "").toUpperCase().includes("PM") ||
-          (wo.wo_type || "").toUpperCase().includes("PM") ||
-          (wo.workType || "").toUpperCase().includes("PM") ||
-          (targetWO && (targetWO.woType || "").toUpperCase().includes("PM")) ||
-          (currentActiveWO || "").toUpperCase().includes("PM") ||
-          (currentDrawerData && currentDrawerData.components && currentDrawerData.components.length > 0)
-        );
+        const isPM = isPMWorkOrder(wo, currentDrawerData);
         const technicianNote = document.getElementById("modalTechnicianNote")?.value || "";
 
         let closingData = {
@@ -1966,10 +2757,18 @@
         };
 
         if (!isPM) {
+          const repairDate = document.getElementById("cmRepairDate")?.value || "";
+          const repairTime = document.getElementById("cmRepairTime")?.value || "";
+          const finalEndDate = (repairDate && repairTime) ? `${repairDate}T${repairTime}:00` : new Date().toISOString();
+
+          closingData.repairDate = repairDate;
+          closingData.repairTime = repairTime;
+          closingData.endDate = finalEndDate;
           closingData.rootCause = document.getElementById("cmRootCause")?.value || "";
           closingData.actionTaken = document.getElementById("cmActionTaken")?.value || "";
           closingData.workTimeMinutes = document.getElementById("cmWorkTime")?.value || 30;
           closingData.downtimeMinutes = document.getElementById("cmDowntime")?.value || 0;
+          closingData.downtimeCode = document.getElementById("cmDowntimeCode")?.value || "";
           closingData.spareParts = document.getElementById("cmSpareParts")?.value || "";
           closingData.photoBefore = taskPhotos["cm_before"] || "";
           closingData.photoAfter = taskPhotos["cm_after"] || "";

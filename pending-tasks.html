@@ -27,6 +27,78 @@
       color: #1d4ed8;
       border: 1px solid #bfdbfe;
     }
+    /* Search Bar Modern Styling */
+    .search-bar-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+      background: #ffffff;
+      border: 1.5px solid var(--border-color);
+      border-radius: var(--radius-md);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+      transition: all 0.2s ease;
+      margin-bottom: 14px;
+    }
+    .search-bar-wrapper:focus-within {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12), 0 2px 6px rgba(0, 0, 0, 0.04);
+      background: #ffffff;
+    }
+    .search-bar-wrapper.approval-mode:focus-within {
+      border-color: #d97706;
+      box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.14), 0 2px 6px rgba(0, 0, 0, 0.04);
+    }
+    .search-icon {
+      position: absolute;
+      left: 14px;
+      font-size: 14px;
+      color: #94a3b8;
+      pointer-events: none;
+      transition: color 0.2s ease;
+    }
+    .search-bar-wrapper:focus-within .search-icon {
+      color: var(--primary);
+    }
+    .search-bar-wrapper.approval-mode:focus-within .search-icon {
+      color: #d97706;
+    }
+    .search-input {
+      width: 100%;
+      height: 44px;
+      padding: 10px 40px 10px 42px;
+      border: none;
+      background: transparent;
+      outline: none;
+      font-family: inherit;
+      font-size: 12.5px;
+      color: var(--text-main);
+    }
+    .search-input::placeholder {
+      color: #94a3b8;
+      font-size: 12px;
+    }
+    #clearSearchBtn {
+      position: absolute;
+      right: 8px;
+      background: #f1f5f9;
+      border: none;
+      color: #64748b;
+      cursor: pointer;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      transition: all 0.15s ease;
+      padding: 0;
+    }
+    #clearSearchBtn:hover {
+      background: #e2e8f0;
+      color: var(--text-main);
+    }
+
     .filter-tabs {
       display: flex;
       gap: 6px;
@@ -182,6 +254,49 @@
     }
     .btn-assign:active {
       transform: translateY(0);
+    }
+    .btn-reject {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 8px 12px;
+      border-radius: var(--radius-md);
+      font-size: 12px;
+      font-weight: 700;
+      font-family: inherit;
+      color: #dc2626;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .btn-reject:hover {
+      background: #fee2e2;
+      border-color: #f87171;
+      color: #b91c1c;
+      transform: translateY(-1px);
+    }
+    .btn-reject:active {
+      transform: translateY(0);
+    }
+    .reject-chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: var(--radius-full);
+      font-size: 11px;
+      font-weight: 600;
+      background: #ffffff;
+      color: #475569;
+      border: 1px solid #cbd5e1;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      font-family: inherit;
+    }
+    .reject-chip:hover {
+      background: #fee2e2;
+      color: #dc2626;
+      border-color: #fca5a5;
     }
 
     /* Modal Styles */
@@ -506,6 +621,75 @@
   </div>
 
   <!-- =========================================================
+       REJECT REQUEST MODAL
+  ========================================================== -->
+  <div id="rejectModal" class="modal-overlay">
+    <div class="modal-container" style="max-width: 440px;">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <div style="width: 32px; height: 32px; border-radius: var(--radius-sm); background: #fee2e2; color: #dc2626; display: flex; align-items: center; justify-content: center; font-size: 14px;">
+            <i class="fa-solid fa-ban"></i>
+          </div>
+          <div>
+            <div class="modal-title">ปฏิเสธคำขอแจ้งซ่อม (Reject Request)</div>
+            <div id="modalRejectReqCodeLabel" style="font-size: 11px; font-family: monospace; color: #dc2626; font-weight: 700;">-</div>
+          </div>
+        </div>
+        <button onclick="closeRejectModal()" style="background: none; border: none; width: 30px; height: 30px; border-radius: 50%; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center;">
+          <i class="fa-solid fa-xmark" style="font-size: 14px;"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div style="background: #f8fafc; border-radius: var(--radius-md); padding: 12px; margin-bottom: 12px; border: 1px solid var(--border-color); font-size: 12px;">
+          <div style="margin-bottom: 4px;"><strong style="color: var(--text-sub);">เครื่องจักร:</strong> <span id="rejectModalAsset">-</span></div>
+          <div style="margin-bottom: 4px;"><strong style="color: var(--text-sub);">อาการเสีย:</strong> <span id="rejectModalIssue">-</span></div>
+          <div><strong style="color: var(--text-sub);">ผู้แจ้ง:</strong> <span id="rejectModalReporter">-</span></div>
+        </div>
+
+        <div style="margin-bottom: 12px;">
+          <label style="display: block; font-size: 11.5px; font-weight: 700; color: #991b1b; margin-bottom: 4px;">
+            เหตุผลการปฏิเสธคำขอ (Reject Reason) <span style="color: #ef4444;">*</span>:
+          </label>
+          <textarea
+            id="rejectModalReason"
+            rows="3"
+            placeholder="ระบุเหตุผลในการปฏิเสธ เช่น ข้อมูลไม่ชัดเจน, ไม่อยู่ในขอบข่ายงานซ่อมบำรุง, อุปกรณ์ใช้งานได้ตามปกติ..."
+            style="width: 100%; border: 1.5px solid #fca5a5; border-radius: var(--radius-md); padding: 8px 10px; font-size: 12px; font-family: inherit; resize: none; outline: none; background: #fffafb;"
+          ></textarea>
+        </div>
+
+        <!-- Quick reason chips -->
+        <div style="margin-bottom: 14px;">
+          <div style="font-size: 10.5px; color: #64748b; font-weight: 600; margin-bottom: 6px;">
+            <i class="fa-solid fa-hand-pointer" style="margin-right: 3px;"></i> หรือเลือกเหตุผลด่วน:
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 5px;">
+            <button type="button" class="reject-chip" onclick="selectRejectChip('ข้อมูลคำขอไม่ครบถ้วน / รายละเอียดไม่ชัดเจน')">ข้อมูลไม่ครบถ้วน</button>
+            <button type="button" class="reject-chip" onclick="selectRejectChip('แจ้งซ่อมซ้ำซ้อนกับใบงานเดิม')">แจ้งซ่อมซ้ำซ้อน</button>
+            <button type="button" class="reject-chip" onclick="selectRejectChip('ไม่อยู่ในเงื่อนไขการรับบริการของฝ่ายซ่อมบำรุง')">ไม่อยู่ในเงื่อนไข</button>
+            <button type="button" class="reject-chip" onclick="selectRejectChip('เครื่องจักร/อุปกรณ์ใช้งานได้ตามปกติ')">เครื่องใช้งานได้ปกติ</button>
+            <button type="button" class="reject-chip" onclick="selectRejectChip('ยกเลิกตามคำขอของผู้แจ้ง')">ผู้แจ้งขอยกเลิก</button>
+          </div>
+        </div>
+
+        <div style="font-size: 11px; color: #b91c1c; background: #fef2f2; padding: 8px 10px; border-radius: var(--radius-sm); border: 1px solid #fecaca; line-height: 1.4;">
+          <i class="fa-solid fa-triangle-exclamation" style="margin-right: 3px;"></i> เมื่อยืนยัน สถานะคำขอจะเปลี่ยนเป็น <strong>Rejected</strong> และบันทึกเหตุผลในตาราง <strong>requests (reject_reason)</strong> ทันที
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" onclick="closeRejectModal()" style="padding: 8px 16px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: #ffffff; color: var(--text-main); font-size: 12px; font-weight: 600; cursor: pointer;">
+          ยกเลิก
+        </button>
+        <button type="button" id="btnConfirmReject" onclick="submitModalReject()" style="display: inline-flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: var(--radius-md); font-size: 12px; font-weight: 700; font-family: inherit; color: #ffffff; background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); border: none; cursor: pointer; box-shadow: 0 2px 4px rgba(220, 38, 38, 0.25); transition: all 0.2s ease;">
+          <i class="fa-solid fa-ban"></i> ยืนยันปฏิเสธคำขอ
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================
        APPROVE WORK ORDER MODAL
   ========================================================== -->
   <div id="approveModal" class="modal-overlay">
@@ -586,6 +770,48 @@
       <!-- Modal Body -->
       <div class="modal-body">
         
+        <!-- Machine & Component Review / Edit -->
+        <div style="margin-bottom: 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: var(--radius-md); padding: 12px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+            <label style="font-size: 11.5px; font-weight: 700; color: var(--text-main); margin: 0; display: flex; align-items: center; gap: 5px;">
+              <i class="fa-solid fa-pen-to-square" style="color: var(--primary);"></i> ตรวจสอบ / แก้ไขเครื่องจักรและชิ้นส่วน
+            </label>
+            <span style="font-size: 10px; color: var(--text-muted);">(แก้ไขได้หากผู้แจ้งระบุผิดหรือไม่ระบุ)</span>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+            <div>
+              <label style="display: block; font-size: 11px; font-weight: 600; color: #475569; margin-bottom: 4px;">
+                Asset Code (รหัสเครื่อง) <span style="color: #dc2626;">*</span>
+              </label>
+              <input
+                type="text"
+                id="modalAssetCode"
+                list="modal-asset-list"
+                oninput="onModalAssetInput(this.value)"
+                placeholder="เช่น FA-CR001"
+                style="width: 100%; padding: 7px 10px; font-size: 12px; font-family: monospace; border: 1px solid var(--border-color); border-radius: var(--radius-sm); outline: none; background: #ffffff;"
+              />
+              <datalist id="modal-asset-list"></datalist>
+            </div>
+
+            <div>
+              <label style="display: block; font-size: 11px; font-weight: 600; color: #475569; margin-bottom: 4px;">
+                Component Code (รหัสชิ้นส่วน)
+              </label>
+              <input
+                type="text"
+                id="modalComponentCode"
+                list="modal-component-list"
+                placeholder="เช่น FA-CR001-MT01"
+                style="width: 100%; padding: 7px 10px; font-size: 12px; font-family: monospace; border: 1px solid var(--border-color); border-radius: var(--radius-sm); outline: none; background: #ffffff;"
+              />
+              <datalist id="modal-component-list"></datalist>
+            </div>
+          </div>
+          <div id="modalAssetHelperText" style="font-size: 10.5px; color: var(--text-muted); margin-top: 5px;"></div>
+        </div>
+
         <!-- Work Order Type -->
         <div style="margin-bottom: 14px;">
           <label style="display: block; font-size: 12px; font-weight: 700; color: var(--text-main); margin-bottom: 6px;">ประเภทใบสั่งงาน (Work Order Type):</label>
@@ -671,6 +897,8 @@
   <script>
     let rawPendingTasks = [];
     let rawPendingApprovals = [];
+    let rawAssets = [];
+    let rawComponents = [];
     let currentPortalMode = 'DISPATCH'; // 'DISPATCH' | 'APPROVAL'
     let activeFilter = 'ALL';
     let currentAssigneeType = 'INTERNAL';
@@ -703,10 +931,21 @@
         const roleRes = await CmmsApi.checkManagerRole(user.userId);
         LiffAuth.hideLoading();
 
+        const checkMgrStr = (val) => {
+          const s = String(val || '').trim().toLowerCase();
+          return s === 'manager' || s === 'admin' || s === 'supervisor' || s === 'lead' || s.includes('ผู้จัดการ') || s.includes('หัวหน้า') || s.includes('mgr');
+        };
+
         let isManager = false;
         if (roleRes && roleRes.success) {
-          const r = String(roleRes.role || (roleRes.user && roleRes.user.role) || '').toLowerCase();
-          if (roleRes.isManager || r === 'manager' || r === 'admin' || r === 'supervisor' || r === 'lead' || r.includes('ผู้จัดการ') || r.includes('หัวหน้า') || r.includes('mgr')) {
+          const r = String(roleRes.role || (roleRes.user && (roleRes.user.role || roleRes.user.accessRights || roleRes.user.access_rights)) || '');
+          if (roleRes.isManager || checkMgrStr(r)) {
+            isManager = true;
+          }
+        }
+        if (!isManager) {
+          const uRole = String(user.role || user.accessRights || user.access_rights || '');
+          if (checkMgrStr(uRole)) {
             isManager = true;
           }
         }
@@ -715,8 +954,8 @@
             const cached = localStorage.getItem(`cmms_user_sheet_${user.userId}`);
             if (cached) {
               const cp = JSON.parse(cached);
-              const cr = String(cp.access_rights || cp.role || '').toLowerCase();
-              if (cr === 'manager' || cr === 'admin' || cr === 'supervisor' || cr.includes('ผู้จัดการ') || cr.includes('หัวหน้า')) {
+              const cr = String(cp.access_rights || cp.role || '');
+              if (checkMgrStr(cr)) {
                 isManager = true;
               }
             }
@@ -736,6 +975,7 @@
           }
 
           loadPendingTasks();
+          loadMachineMasterData();
         } else {
           const msg = (roleRes && roleRes.message) || 'ขออภัย คุณไม่มีสิทธิ์เข้าถึงหน้ารายการงานค้าง (เฉพาะตำแหน่ง Manager เท่านั้น)';
           showAccessDenied(msg);
@@ -793,6 +1033,10 @@
 
         metricsGrid.style.display = 'grid';
         subTabs.style.display = 'flex';
+        const searchWrapper = document.querySelector('.search-bar-wrapper');
+        const searchInput = document.getElementById('searchInput');
+        if (searchWrapper) searchWrapper.classList.remove('approval-mode');
+        if (searchInput) searchInput.placeholder = "ค้นหารหัสคำขอ, เครื่องจักร, อุปกรณ์, อาการเสีย หรือผู้แจ้ง...";
         renderPendingCards();
       } else {
         btnAppr.style.background = '#d97706';
@@ -807,6 +1051,10 @@
 
         metricsGrid.style.display = 'none';
         subTabs.style.display = 'none';
+        const searchWrapper = document.querySelector('.search-bar-wrapper');
+        const searchInput = document.getElementById('searchInput');
+        if (searchWrapper) searchWrapper.classList.add('approval-mode');
+        if (searchInput) searchInput.placeholder = "ค้นหาใบสั่งงาน (WO), รหัสคำขอ, เครื่องจักร, ช่างผู้รับผิดชอบ, สาเหตุ...";
         renderApprovalCards();
       }
     }
@@ -993,9 +1241,14 @@
               <span>
                 <i class="fa-solid fa-user-pen" style="margin-right: 3px;"></i> ผู้แจ้ง: <strong style="color: var(--text-main);">${reporter}</strong>
               </span>
-              <button type="button" onclick="openAssignModal('${reqCode}', '${item.request_type || 'CM'}')" class="btn-assign">
-                <i class="fa-solid fa-user-plus"></i> มอบหมายงาน
-              </button>
+              <div style="display: flex; gap: 6px; align-items: center;">
+                <button type="button" onclick="openRejectModal('${reqCode}')" class="btn-reject" title="ปฏิเสธคำขอแจ้งซ่อม">
+                  <i class="fa-solid fa-ban"></i> ปฏิเสธ
+                </button>
+                <button type="button" onclick="openAssignModal('${reqCode}', '${item.request_type || 'CM'}')" class="btn-assign">
+                  <i class="fa-solid fa-user-plus"></i> มอบหมายงาน
+                </button>
+              </div>
             </div>
 
           </div>`;
@@ -1014,13 +1267,14 @@
 
       if (q) {
         filtered = filtered.filter(item => {
-          const wo = String(item.workorderCode || item.woNo || '').toLowerCase();
-          const req = String(item.requestCode || '').toLowerCase();
-          const asset = String(item.assetCode || '').toLowerCase();
-          const mName = String(item.machineName || '').toLowerCase();
-          const assignee = String(item.assignee || '').toLowerCase();
-          const action = String(item.actionTaken || '').toLowerCase();
-          return wo.includes(q) || req.includes(q) || asset.includes(q) || mName.includes(q) || assignee.includes(q) || action.includes(q);
+          const wo = String(item.workorderCode || item.woNo || item.workorder_code || item.wo_code || '').toLowerCase();
+          const req = String(item.requestCode || item.request_code || '').toLowerCase();
+          const asset = String(item.assetCode || item.asset_code || '').toLowerCase();
+          const mName = String(item.machineName || item.machine_name || item.asset_name || '').toLowerCase();
+          const assignee = String(item.assignee || item.assignee_name || '').toLowerCase();
+          const action = String(item.actionTaken || item.action_taken || '').toLowerCase();
+          const cause = String(item.rootCause || item.root_cause || '').toLowerCase();
+          return wo.includes(q) || req.includes(q) || asset.includes(q) || mName.includes(q) || assignee.includes(q) || action.includes(q) || cause.includes(q);
         });
       }
 
@@ -1035,19 +1289,32 @@
       window._pendingApprovalsData = filtered;
 
       container.innerHTML = filtered.map((item, idx) => {
-        const woCode = escapeHtml(item.workorderCode || item.woNo || '-');
-        const reqCode = escapeHtml(item.requestCode || '-');
-        const assetCode = escapeHtml(item.assetCode || '-');
-        const machineName = escapeHtml(item.machineName || '-');
-        const assignee = escapeHtml(item.assignee || '-');
-        const rootCause = escapeHtml(item.rootCause || '-');
-        const actionTaken = escapeHtml(item.actionTaken || '-');
-        const completedAt = escapeHtml(item.completedAt || '-');
-        const workTime = item.workingTime ? `${item.workingTime} นาที` : '-';
-        const downTime = item.downTime ? `${item.downTime} นาที` : '-';
+        const woCode = escapeHtml(item.workorderCode || item.woNo || item.workorder_code || item.wo_code || item.id || '-');
+        const reqCode = escapeHtml(item.requestCode || item.request_code || '-');
+        const assetCode = escapeHtml(item.assetCode || item.asset_code || '-');
+        const machineName = escapeHtml(item.machineName || item.machine_name || item.asset_name || item.assetCode || item.asset_code || '-');
+        const assignee = escapeHtml(item.assignee || item.assignee_name || '-');
+        const rootCause = escapeHtml(item.rootCause || item.root_cause || '-');
+        const actionTaken = escapeHtml(item.actionTaken || item.action_taken || '-');
 
-        const hasBeforeImg = item.imageBefore && item.imageBefore.length > 5;
-        const hasResultImg = item.imageResult && item.imageResult.length > 5;
+        let completedAt = item.completedAt || item.completed_at || item.tech_completed_at || item.end_date || item.updated_at || '-';
+        if (completedAt && completedAt !== '-' && String(completedAt).includes('T')) {
+          try {
+            completedAt = new Date(completedAt).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' });
+          } catch {}
+        }
+        completedAt = escapeHtml(String(completedAt));
+
+        const rawWorkTime = item.workingTime ?? item.working_time ?? item.total_working_time;
+        const workTime = (rawWorkTime !== null && rawWorkTime !== undefined && rawWorkTime !== '') ? `${escapeHtml(String(rawWorkTime))} นาที` : '-';
+
+        const rawDownTime = item.downTime ?? item.down_time ?? item.total_down_time;
+        const downTime = (rawDownTime !== null && rawDownTime !== undefined && rawDownTime !== '') ? `${escapeHtml(String(rawDownTime))} นาที` : '-';
+
+        const beforeImg = item.imageBefore || item.image_before || item.photoBefore || item.photo_before || '';
+        const resultImg = item.imageResult || item.image_result || item.photoAfter || item.photo_after || '';
+        const hasBeforeImg = beforeImg && beforeImg.length > 5;
+        const hasResultImg = resultImg && resultImg.length > 5;
 
         return `
           <div class="pending-card" style="border-left: 4px solid #f59e0b;">
@@ -1094,13 +1361,13 @@
                 ${hasBeforeImg ? `
                   <div style="flex: 1;">
                     <span style="font-size: 10px; color: var(--text-muted); display: block; margin-bottom: 2px;">ภาพก่อนซ่อม</span>
-                    <img src="${escapeHtml(item.imageBefore)}" alt="Before" style="width: 100%; height: 70px; object-fit: cover; border-radius: 6px; border: 1px solid #cbd5e1; cursor: pointer;" onclick="openImagePreview('${escapeHtml(item.imageBefore)}')" />
+                    <img src="${escapeHtml(beforeImg)}" alt="Before" style="width: 100%; height: 70px; object-fit: cover; border-radius: 6px; border: 1px solid #cbd5e1; cursor: pointer;" onclick="openImagePreview('${escapeHtml(beforeImg)}')" />
                   </div>
                 ` : ''}
                 ${hasResultImg ? `
                   <div style="flex: 1;">
                     <span style="font-size: 10px; color: var(--text-muted); display: block; margin-bottom: 2px;">ภาพหลังซ่อม</span>
-                    <img src="${escapeHtml(item.imageResult)}" alt="Result" style="width: 100%; height: 70px; object-fit: cover; border-radius: 6px; border: 1px solid #cbd5e1; cursor: pointer;" onclick="openImagePreview('${escapeHtml(item.imageResult)}')" />
+                    <img src="${escapeHtml(resultImg)}" alt="Result" style="width: 100%; height: 70px; object-fit: cover; border-radius: 6px; border: 1px solid #cbd5e1; cursor: pointer;" onclick="openImagePreview('${escapeHtml(resultImg)}')" />
                   </div>
                 ` : ''}
               </div>
@@ -1128,12 +1395,19 @@
       if (!item) return;
       activeApprovalWo = item;
 
-      const woCode = item.workorderCode || item.woNo || '-';
-      document.getElementById('modalApproveWoLabel').innerText = `ใบสั่งงาน: ${woCode} (คำขอ: ${item.requestCode || '-'})`;
-      document.getElementById('approveModalAsset').innerText = `${item.machineName || '-'} (${item.assetCode || '-'})`;
-      document.getElementById('approveModalAssignee').innerText = item.assignee || '-';
-      document.getElementById('approveModalRootCause').innerText = item.rootCause || '-';
-      document.getElementById('approveModalActionTaken').innerText = item.actionTaken || '-';
+      const woCode = item.workorderCode || item.woNo || item.workorder_code || item.wo_code || '-';
+      const reqCode = item.requestCode || item.request_code || '-';
+      const assetCode = item.assetCode || item.asset_code || '-';
+      const machineName = item.machineName || item.machine_name || item.asset_name || assetCode;
+      const assignee = item.assignee || item.assignee_name || '-';
+      const rootCause = item.rootCause || item.root_cause || '-';
+      const actionTaken = item.actionTaken || item.action_taken || '-';
+
+      document.getElementById('modalApproveWoLabel').innerText = `ใบสั่งงาน: ${woCode} (คำขอ: ${reqCode})`;
+      document.getElementById('approveModalAsset').innerText = `${machineName} (${assetCode})`;
+      document.getElementById('approveModalAssignee').innerText = assignee;
+      document.getElementById('approveModalRootCause').innerText = rootCause;
+      document.getElementById('approveModalActionTaken').innerText = actionTaken;
       document.getElementById('approveModalNotes').value = '';
 
       document.getElementById('approveModal').style.display = 'flex';
@@ -1147,7 +1421,8 @@
     async function submitModalApproval() {
       if (!activeApprovalWo) return;
 
-      const woNo = activeApprovalWo.workorderCode || activeApprovalWo.woNo;
+      const woNo = activeApprovalWo.workorderCode || activeApprovalWo.woNo || activeApprovalWo.workorder_code || activeApprovalWo.wo_code;
+      const requestCode = activeApprovalWo.requestCode || activeApprovalWo.request_code || '';
       const notes = document.getElementById('approveModalNotes').value.trim();
       const approvedBy = (currentManager && (currentManager.displayName || currentManager.name || currentManager.userName)) || 'Manager Lead';
 
@@ -1159,7 +1434,7 @@
         const payload = {
           woNo: woNo,
           workorderCode: woNo,
-          requestCode: activeApprovalWo.requestCode || '',
+          requestCode: requestCode,
           approvedBy: approvedBy,
           notes: notes
         };
@@ -1168,8 +1443,8 @@
         btn.disabled = false;
         btn.innerHTML = '<i class="fa-solid fa-check-double"></i> ยืนยันอนุมัติงาน';
 
-        if (res && res.status === "error") {
-          throw new Error(res.message || "ไม่สามารถอนุมัติใบสั่งงานได้");
+        if (res && (res.status === "error" || res.success === false || res.error)) {
+          throw new Error(res.message || res.error || "ไม่สามารถอนุมัติใบสั่งงานได้");
         }
 
         alert(`อนุมัติใบสั่งงาน ${woNo} เรียบร้อยแล้ว!\nระบบได้ส่งต่องานไปยังผู้แจ้งเพื่อตรวจรับงาน (Pending Acceptance) เรียบร้อย`);
@@ -1184,6 +1459,154 @@
     }
 
     /**
+     * =========================================================
+     * REJECT REQUEST MODAL HANDLERS
+     * =========================================================
+     */
+    let activeRejectRequestCode = null;
+
+    function openRejectModal(requestCode) {
+      activeRejectRequestCode = requestCode;
+      document.getElementById('modalRejectReqCodeLabel').innerText = 'รหัสคำขอ: ' + requestCode;
+
+      const reqItem = rawPendingTasks.find(t => (t.request_code || t.requestCode) === requestCode);
+      const assetName = reqItem ? `${reqItem.machine_name || reqItem.asset_name || '-'} (${reqItem.asset_code || reqItem.assetCode || '-'})` : '-';
+      const issueDesc = reqItem ? (reqItem.issue_desc || reqItem.issue_description || '-') : '-';
+      const reporter = reqItem ? (reqItem.reporter_name || reqItem.reporter_by || '-') : '-';
+
+      document.getElementById('rejectModalAsset').innerText = assetName;
+      document.getElementById('rejectModalIssue').innerText = issueDesc;
+      document.getElementById('rejectModalReporter').innerText = reporter;
+      document.getElementById('rejectModalReason').value = '';
+
+      document.getElementById('rejectModal').style.display = 'flex';
+    }
+
+    function closeRejectModal() {
+      document.getElementById('rejectModal').style.display = 'none';
+      activeRejectRequestCode = null;
+    }
+
+    function selectRejectChip(text) {
+      const textarea = document.getElementById('rejectModalReason');
+      if (textarea) {
+        textarea.value = text;
+        textarea.focus();
+      }
+    }
+
+    async function submitModalReject() {
+      if (!activeRejectRequestCode) return;
+
+      const reason = (document.getElementById('rejectModalReason').value || '').trim();
+      if (!reason) {
+        alert('กรุณาระบุเหตุผลการปฏิเสธคำขอแจ้งซ่อม (Reject Reason)');
+        document.getElementById('rejectModalReason').focus();
+        return;
+      }
+
+      const updatedBy = (currentManager && (currentManager.displayName || currentManager.name || currentManager.userName)) || 'Manager';
+      const btn = document.getElementById('btnConfirmReject');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> กำลังบันทึก...';
+
+      try {
+        const payload = {
+          requestCode: activeRejectRequestCode,
+          reason: reason,
+          reject_reason: reason,
+          updatedBy: updatedBy
+        };
+
+        const res = await CmmsApi.rejectRequest(payload);
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-ban"></i> ยืนยันปฏิเสธคำขอ';
+
+        if (res && (res.status === 'error' || res.success === false || res.error)) {
+          throw new Error(res.message || res.error || 'ไม่สามารถปฏิเสธคำขอได้');
+        }
+
+        alert(`ปฏิเสธคำขอแจ้งซ่อม ${activeRejectRequestCode} เรียบร้อยแล้ว!\nสถานะเปลี่ยนเป็น "Rejected"`);
+        closeRejectModal();
+        loadPendingTasks();
+      } catch (err) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-ban"></i> ยืนยันปฏิเสธคำขอ';
+        console.error('submitModalReject Error:', err);
+        alert('เกิดข้อผิดพลาดในการปฏิเสธคำขอ: ' + (err.message || String(err)));
+      }
+    }
+
+    /**
+     * Master Data for Modal (Assets & Components)
+     */
+    async function loadMachineMasterData() {
+      if (rawAssets.length > 0) return;
+      try {
+        const json = await CmmsApi.getMachines();
+        if (json && json.status === "success") {
+          rawAssets = json.data?.assets || [];
+          rawComponents = json.data?.components || [];
+          renderModalAssetDatalist();
+        }
+      } catch (err) {
+        console.warn("Could not load machine master data for modal:", err);
+      }
+    }
+
+    function renderModalAssetDatalist() {
+      const list = document.getElementById("modal-asset-list");
+      if (!list) return;
+      list.innerHTML = "";
+      rawAssets.forEach(item => {
+        const opt = document.createElement("option");
+        opt.value = item.assetCode;
+        opt.label = item.machineName ? `${item.assetCode} - ${item.machineName}` : item.assetCode;
+        list.appendChild(opt);
+      });
+    }
+
+    function onModalAssetInput(val) {
+      if (!val) {
+        document.getElementById("modalAssetHelperText").innerHTML = "";
+        updateModalComponentDatalist("");
+        return;
+      }
+      val = val.trim();
+
+      // Check if user entered a component code directly
+      const compMatch = rawComponents.find(c => c.compCode && c.compCode.toUpperCase() === val.toUpperCase());
+      if (compMatch) {
+        document.getElementById("modalAssetCode").value = compMatch.assetCode;
+        document.getElementById("modalComponentCode").value = compMatch.compCode;
+        val = compMatch.assetCode;
+      }
+
+      updateModalComponentDatalist(val);
+
+      const matchedAsset = rawAssets.find(a => a.assetCode && a.assetCode.toUpperCase() === val.toUpperCase());
+      const helper = document.getElementById("modalAssetHelperText");
+      if (matchedAsset) {
+        helper.innerHTML = `<i class="fa-solid fa-circle-check" style="color: #16a34a; margin-right: 4px;"></i><strong style="color: var(--text-main);">${escapeHtml(matchedAsset.machineName || '')}</strong> <span style="color: var(--text-muted);">(${escapeHtml(matchedAsset.location || matchedAsset.department || '')})</span>`;
+      } else {
+        helper.innerHTML = "";
+      }
+    }
+
+    function updateModalComponentDatalist(assetCode) {
+      const compList = document.getElementById("modal-component-list");
+      if (!compList) return;
+      compList.innerHTML = "";
+      const filtered = rawComponents.filter(c => !assetCode || c.assetCode === assetCode || (c.compCode && c.compCode.startsWith(assetCode)));
+      filtered.forEach(item => {
+        const opt = document.createElement("option");
+        opt.value = item.compCode;
+        opt.label = item.compName ? `${item.compCode} - ${item.compName}` : item.compCode;
+        compList.appendChild(opt);
+      });
+    }
+
+    /**
      * 8. Assign Modal Handlers
      */
     async function openAssignModal(requestCode, reqType) {
@@ -1194,10 +1617,22 @@
       if (isBm) document.getElementById('radioWoBm').checked = true;
       else document.getElementById('radioWoCm').checked = true;
 
+      // ค้นหาข้อมูลคำขอจาก rawPendingTasks เพื่อดึง asset_code และ component_code เดิม
+      const reqItem = rawPendingTasks.find(t => (t.request_code || t.requestCode) === requestCode);
+      const curAsset = reqItem ? (reqItem.asset_code || reqItem.assetCode || '') : '';
+      const curComp = reqItem ? (reqItem.component_code || reqItem.componentCode || '') : '';
+
+      document.getElementById('modalAssetCode').value = curAsset;
+      document.getElementById('modalComponentCode').value = curComp;
+      document.getElementById('modalAssetHelperText').innerHTML = '';
+
       selectDueDay(1, document.querySelector('.due-day-btn'));
       document.getElementById('assignModal').style.display = 'flex';
 
       loadAssignees();
+      await loadMachineMasterData();
+      if (curAsset) onModalAssetInput(curAsset);
+      if (curComp) document.getElementById('modalComponentCode').value = curComp;
     }
 
     function closeAssignModal() {
@@ -1305,7 +1740,14 @@
       const assigneeIds = Array.from(checked).map(cb => cb.getAttribute('data-id') || '');
       const woType = document.querySelector('input[name="modalWoType"]:checked')?.value || 'CM';
       const dueDays = parseInt(document.getElementById('modalDueDaysVal').value || 1, 10);
+      const assetCode = (document.getElementById('modalAssetCode').value || '').trim();
+      const componentCode = (document.getElementById('modalComponentCode').value || '').trim();
       const btn = document.getElementById('btnConfirmAssign');
+
+      if (!assetCode) {
+        alert('กรุณาระบุ Asset Code (รหัสเครื่องจักร)');
+        return;
+      }
 
       if (assignees.length === 0) {
         alert('กรุณาเลือกช่างหรือผู้รับเหมาอย่างน้อย 1 คน');
@@ -1318,6 +1760,8 @@
       const payload = {
         requestCode: activeRequestCode,
         requestCodes: [activeRequestCode],
+        assetCode: assetCode,
+        componentCode: componentCode || null,
         assignees: assignees,
         assigneeIds: assigneeIds,
         assigneeType: currentAssigneeType,

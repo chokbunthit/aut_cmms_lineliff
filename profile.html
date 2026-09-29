@@ -321,8 +321,18 @@
         </div>
 
         <div style="display: flex; flex-direction: column; gap: 8px;">
+          <!-- ปุ่มเข้าสู่ระบบ (Login) -->
+          <a href="login.html" id="btnGoLogin" class="btn-primary" style="background: var(--primary-gradient); color: white; font-size: 12px; padding: 10px; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 6px;">
+            <i class="fa-solid fa-arrow-right-to-bracket"></i> เข้าสู่ระบบด้วยบัญชีอื่น (Login)
+          </a>
+
+          <!-- ปุ่ม Login ด้วย LINE (แสดงเฉพาะเมื่อยังไม่ได้ login ผ่าน LINE) -->
+          <button id="btnLineLogin" onclick="loginWithLine()" class="btn-primary" style="background: #06C755; color: white; font-size: 12px; padding: 10px; border: 1px solid #05b34a; display: none;">
+            <i class="fa-brands fa-line"></i> เข้าสู่ระบบด้วย LINE
+          </button>
+
           <button onclick="clearCacheAndReload()" class="btn-primary" style="background: #f1f5f9; color: var(--text-main); font-size: 12px; padding: 10px; border: 1px solid var(--border-color);">
-            <i class="fa-solid fa-rotate-right"></i> ล้างแคชและรีเฟรชข้อมูล
+            <i class="fa-solid fa-rotate-right"></i> ล้างแคชและเข้าสู่ระบบใหม่
           </button>
           
           <button onclick="LiffAuth.logout()" class="btn-primary" style="background: #fef2f2; color: #dc2626; font-size: 12px; padding: 10px; border: 1px solid #fecaca;">
@@ -375,18 +385,32 @@
 
       try {
         activeUser = await LiffAuth.init({
-          requiredAuth: false,
+          requiredAuth: true,
           onReady: (user) => {
+            if (!user || !user.isLoggedIn || !user.userId) {
+              window.location.href = "login.html";
+              return;
+            }
             renderLiffUser(user);
+            setupLoginButton(user);
           }
         });
+
+        if (!activeUser || !activeUser.isLoggedIn || !activeUser.userId) {
+          window.location.href = "login.html";
+          return;
+        }
 
         const userId = activeUser ? activeUser.userId : "";
         if (userId) {
           await loadUserProfileFromSheet(userId);
         }
+
+        // ตรวจสอบสถานะ login อีกครั้งหลัง load ข้อมูลเสร็จ
+        setupLoginButton(activeUser);
       } catch (err) {
         console.error("Profile Init Error:", err);
+        window.location.href = "login.html";
       } finally {
         LiffAuth.hideLoading();
       }
@@ -587,12 +611,56 @@
     }
 
     /**
-     * ล้างแคช
+     * ล้างแคชและไปหน้า Login
      */
     function clearCacheAndReload() {
-      if (confirm("คุณต้องการล้างข้อมูลแคชและรีโหลดหน้าใหม่ใช่หรือไม่?")) {
+      if (confirm("คุณต้องการล้างข้อมูลแคชและเข้าสู่ระบบใหม่ใช่หรือไม่?")) {
         localStorage.clear();
-        location.reload();
+        sessionStorage.clear();
+        window.location.href = "login.html";
+      }
+    }
+
+    /**
+     * แสดง/ซ่อนปุ่ม LINE Login ตามสถานะการ login
+     */
+    function setupLoginButton(user) {
+      const btnLineLogin = document.getElementById("btnLineLogin");
+      if (!btnLineLogin) return;
+
+      // แสดงปุ่มถ้ายังไม่ได้ login ผ่าน LINE
+      if (user && user.authSource === "liff" && user.isLoggedIn) {
+        btnLineLogin.style.display = "none";
+      } else {
+        btnLineLogin.style.display = "flex";
+      }
+    }
+
+    /**
+     * เข้าสู่ระบบด้วย LINE
+     */
+    async function loginWithLine() {
+      const btn = document.getElementById("btnLineLogin");
+      btn.disabled = true;
+      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> กำลังเชื่อมต่อ...`;
+
+      try {
+        if (typeof liff === "undefined") {
+          throw new Error("ไม่สามารถโหลด LINE LIFF SDK ได้ กรุณาเชื่อมต่ออินเทอร์เน็ต");
+        }
+
+        await liff.init({ liffId: LiffAuth.DEFAULT_LIFF_ID });
+
+        if (!liff.isLoggedIn()) {
+          liff.login();
+        } else {
+          location.reload();
+        }
+      } catch (err) {
+        console.error("Login error:", err);
+        alert(err.message || "เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง");
+        btn.disabled = false;
+        btn.innerHTML = `<i class="fa-brands fa-line"></i> เข้าสู่ระบบด้วย LINE`;
       }
     }
   </script>

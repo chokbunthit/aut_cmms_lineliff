@@ -297,12 +297,12 @@
           requiredAuth: false,
           onReady: (user) => {
             renderUserProfile(user);
-            setupRolePermissions(user);
           }
         });
 
         if (activeUser) {
-          setupRolePermissions(activeUser);
+          renderUserProfile(activeUser);
+          await setupRolePermissions(activeUser);
         }
 
         await loadDashboardData();
@@ -318,6 +318,12 @@
       const nameEl = document.getElementById("userName");
       const avatarEl = document.getElementById("userAvatar");
       const deptEl = document.getElementById("userDept");
+
+      if (!user.isLoggedIn || !user.userId) {
+        if (nameEl) nameEl.innerHTML = '<span style="font-size: 14px;">ผู้เยี่ยมชม (Guest)</span>';
+        if (deptEl) deptEl.innerHTML = '<a href="login.html" style="color: #bfdbfe; font-weight: 700; text-decoration: underline;"><i class="fa-solid fa-arrow-right-to-bracket"></i> แตะเพื่อเข้าสู่ระบบ</a>';
+        return;
+      }
 
       // ตรวจสอบข้อมูลจาก Sheet Users cache ถ้ามี
       let sheetProfile = {};
@@ -346,7 +352,7 @@
      * - Manager/Admin: แสดง 4 ปุ่ม (แจ้งซ่อม, งานค้าง Mgr, งานช่าง MT, ติดตามสถานะ) | แสดงแบนเนอร์ Mgr (นับงานรออนุมัติ) | ซ่อนสแกน QR
      */
     async function setupRolePermissions(user) {
-      if (!user || !user.userId) return;
+      if (!user) return;
 
       const mgrBanner = document.getElementById("managerBanner");
       const techBanner = document.getElementById("technicianBanner");
@@ -358,6 +364,21 @@
       try {
         let isManager = false;
         let isTech = false;
+
+        const checkRoleStr = (r) => {
+          const s = String(r || "").trim().toLowerCase();
+          return (
+            s === "manager" ||
+            s === "admin" ||
+            s === "supervisor" ||
+            s === "lead" ||
+            s.includes("ผู้จัดการ") ||
+            s.includes("หัวหน้า") ||
+            s.includes("mgr")
+          );
+        };
+
+        // 1. ตรวจสอบสิทธิ์จาก User object และ Local Storage
         let sheetProfile = {};
         if (user.userId) {
           try {
@@ -365,23 +386,42 @@
             if (cached) sheetProfile = JSON.parse(cached);
           } catch (e) { }
         }
-        const cachedRole = String(sheetProfile.access_rights || sheetProfile.role || "").toLowerCase();
-        if (cachedRole === "manager" || cachedRole === "admin" || cachedRole === "supervisor" || cachedRole === "lead" || cachedRole.includes("ผู้จัดการ") || cachedRole.includes("หัวหน้า") || cachedRole.includes("mgr")) {
+
+        const localRole = String(
+          user.role ||
+          user.accessRights ||
+          user.access_rights ||
+          sheetProfile.access_rights ||
+          sheetProfile.role ||
+          ""
+        );
+
+        if (checkRoleStr(localRole)) {
           isManager = true;
           isTech = true;
-        } else if (cachedRole.includes("tech")) {
+        } else if (localRole.toLowerCase().includes("tech")) {
           isTech = true;
         }
 
-        // ตรวจสอบกับ Server (Sheet Users)
-        const roleRes = await CmmsApi.checkManagerRole(user.userId);
-        if (roleRes && roleRes.success) {
-          const role = String(roleRes.role || (roleRes.user && roleRes.user.role) || "").toLowerCase();
-          if (roleRes.isManager || role === "manager" || role === "admin" || role === "supervisor" || role === "lead" || role.includes("ผู้จัดการ") || role.includes("หัวหน้า") || role.includes("mgr")) {
-            isManager = true;
-            isTech = true;
-          } else if (role.includes("tech")) {
-            isTech = true;
+        // 2. ตรวจสอบยืนยันสิทธิ์กับ Server / Supabase Backend
+        if (user.userId) {
+          try {
+            const roleRes = await CmmsApi.checkManagerRole(user.userId);
+            if (roleRes && roleRes.success) {
+              const sRole = String(
+                roleRes.role ||
+                (roleRes.user && (roleRes.user.role || roleRes.user.accessRights || roleRes.user.access_rights)) ||
+                ""
+              );
+              if (roleRes.isManager || checkRoleStr(sRole)) {
+                isManager = true;
+                isTech = true;
+              } else if (sRole.toLowerCase().includes("tech")) {
+                isTech = true;
+              }
+            }
+          } catch (apiErr) {
+            console.warn("checkManagerRole warning:", apiErr);
           }
         }
 

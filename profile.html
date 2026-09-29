@@ -528,10 +528,13 @@
       const username = document.getElementById("profUsername").value.trim();
       const password = document.getElementById("profPassword").value.trim();
 
-      // เตรียม Payload ส่งเฉพาะ 4 ฟิลด์หลัก + userId
+      // เตรียม Payload ครอบคลุมทั้ง snake_case และ camelCase
       const payload = {
         userId: userId,
+        name: displayName,
+        displayName: displayName,
         display_name: displayName,
+        deptCode: deptCode,
         dept_code: deptCode,
         username: username,
         password: password
@@ -550,6 +553,7 @@
         activeUser.displayName = displayName;
         activeUser.display_name = displayName;
         activeUser.dept_code = deptCode;
+        activeUser.username = username;
         LiffAuth.saveUser(activeUser);
       }
 
@@ -563,13 +567,18 @@
 
         if (res && res.status === "success") {
           alert("บันทึกข้อมูลส่วนตัวเรียบร้อยแล้ว ✅");
+          if (res.data) {
+            currentUserProfile = { ...currentUserProfile, ...res.data };
+            localStorage.setItem(`cmms_user_sheet_${userId}`, JSON.stringify(currentUserProfile));
+            populateProfileData(currentUserProfile);
+          }
         } else {
-          alert(res?.message || "บันทึกข้อมูลเรียบร้อยแล้ว");
+          alert("แจ้งเตือน: " + (res?.message || "ไม่สามารถบันทึกข้อมูลไปยังฐานข้อมูลได้"));
         }
       } catch (err) {
         LiffAuth.hideLoading();
-        console.warn("API update profile error (saved locally):", err);
-        alert("บันทึกข้อมูลในอุปกรณ์เรียบร้อยแล้ว");
+        console.error("API update profile error:", err);
+        alert("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์: " + (err.message || err));
       } finally {
         btn.disabled = false;
         btn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> บันทึกการเปลี่ยนแปลง`;

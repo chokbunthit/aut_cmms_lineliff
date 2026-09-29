@@ -506,12 +506,17 @@
       }
 
       if (passwordVal) {
-        document.getElementById("profPassword").value = passwordVal;
+        if (typeof passwordVal === "string" && (passwordVal.startsWith("$2a$") || passwordVal.startsWith("$2b$"))) {
+          document.getElementById("profPassword").value = "";
+          document.getElementById("profPassword").placeholder = "•••••••• (เข้ารหัสแล้ว - ระบุเพื่อเปลี่ยนใหม่)";
+        } else {
+          document.getElementById("profPassword").value = passwordVal;
+        }
       }
     }
 
     /**
-     * บันทึกข้อมูลเฉพาะ 4 ฟิลด์: display_name, dept_code, username, password
+     * บันทึกข้อมูลเฉพาะ 4 ฟิลด์: display_name, dept_code, username, password + รูปโปรไฟล์
      */
     async function handleProfileSubmit(e) {
       e.preventDefault();
@@ -527,18 +532,27 @@
       const deptCode = document.getElementById("profDeptCode").value.trim();
       const username = document.getElementById("profUsername").value.trim();
       const password = document.getElementById("profPassword").value.trim();
+      const pictureUrl = (activeUser && activeUser.pictureUrl) || 
+                         (currentUserProfile && (currentUserProfile.picture_url || currentUserProfile.pictureUrl)) || 
+                         (document.getElementById("avatarImage") ? document.getElementById("avatarImage").src : "") || "";
 
-      // เตรียม Payload ครอบคลุมทั้ง snake_case และ camelCase
+      // เตรียม Payload ครอบคลุมทั้ง snake_case และ camelCase พร้อมรูปภาพ
       const payload = {
         userId: userId,
         name: displayName,
         displayName: displayName,
         display_name: displayName,
+        pictureUrl: pictureUrl,
+        picture_url: pictureUrl,
         deptCode: deptCode,
         dept_code: deptCode,
-        username: username,
-        password: password
+        username: username
       };
+
+      // ส่งรหัสผ่านเฉพาะเมื่อผู้ใช้กรอกรหัสใหม่ (ป้องกันการทับ crypt hash เดิมด้วยค่าว่าง)
+      if (password) {
+        payload.password = password;
+      }
 
       // บันทึกลง LocalStorage ทันที
       const updatedProfile = {

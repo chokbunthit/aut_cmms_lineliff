@@ -3,6 +3,7 @@
 
 <head>
   <meta charset="UTF-8" />
+  <link rel="icon" type="image/x-icon" href="favicon.ico" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AUT CMMS - เข้าสู่ระบบ</title>
 
@@ -425,6 +426,7 @@
     const LIFF_ID = "2011076529-EKhCiseU";
 
     function getRedirectUrl() {
+      let target = "index.html";
       try {
         const params = new URLSearchParams(window.location.search);
         const red = params.get("redirect");
@@ -432,11 +434,13 @@
           // ป้องกัน Open Redirect
           const clean = decodeURIComponent(red).replace(/^[\/\\]+/, "");
           if (!clean.startsWith("http://") && !clean.startsWith("https://") && !clean.startsWith("//")) {
-            return clean;
+            target = clean;
           }
         }
       } catch (e) { }
-      return "index.html";
+      return (window.LiffAuth && window.LiffAuth.getNavigationUrl)
+        ? window.LiffAuth.getNavigationUrl(target)
+        : target;
     }
 
     function checkRedirectNotice() {

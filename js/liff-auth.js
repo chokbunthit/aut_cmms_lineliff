@@ -109,6 +109,30 @@ const LiffAuth = (function () {
    * เริ่มต้นระบบ LIFF และดึง User Profile
    * @param {Object} options - { liffId, requiredAuth: true/false, onReady: Function }
    */
+  /**
+   * คำนวณ URL ปลายทางให้ถูกต้องตามสภาพแวดล้อม (LINE LIFF, GitHub Pages, Localhost)
+   * ป้องกันปัญหา 404 เมื่อเปลี่ยนหน้า
+   */
+  function getNavigationUrl(targetPage) {
+    if (!targetPage) return "index.html";
+    if (targetPage.startsWith("http://") || targetPage.startsWith("https://") || targetPage.startsWith("//")) {
+      return targetPage;
+    }
+    // 1. กรณีอยู่บน liff.line.me เช่น https://liff.line.me/2011076529-EKhCiseU/...
+    if (typeof window !== "undefined" && window.location && window.location.hostname === "liff.line.me") {
+      const parts = window.location.pathname.split("/").filter(Boolean);
+      const liffId = parts[0] || DEFAULT_LIFF_ID;
+      return "https://liff.line.me/" + liffId + "/" + targetPage.replace(/^\/+/, "");
+    }
+    // 2. กรณีอยู่บน GitHub Pages หรือ Subdirectory ทั่วไป
+    if (typeof window !== "undefined" && window.location) {
+      const pathname = window.location.pathname;
+      const dir = pathname.substring(0, pathname.lastIndexOf("/") + 1) || "./";
+      return dir + targetPage.replace(/^\/+/, "");
+    }
+    return targetPage;
+  }
+
   async function init(options = {}) {
     const liffId = options.liffId || DEFAULT_LIFF_ID;
     const requiredAuth = options.requiredAuth !== false; // default true
@@ -230,26 +254,7 @@ const LiffAuth = (function () {
         return currentUser;
       }
 
-      /**
-       * คำนวณ URL ปลายทางให้ถูกต้องตามสภาพแวดล้อม (LINE LIFF, GitHub Pages, Localhost)
-       * ป้องกันปัญหา 404 เมื่อเปลี่ยนหน้า
-       */
-      function getNavigationUrl(targetPage) {
-        if (!targetPage) return "index.html";
-        if (targetPage.startsWith("http://") || targetPage.startsWith("https://") || targetPage.startsWith("//")) {
-          return targetPage;
-        }
-        // 1. กรณีอยู่บน liff.line.me เช่น https://liff.line.me/2011076529-EKhCiseU/...
-        if (window.location.hostname === "liff.line.me") {
-          const parts = window.location.pathname.split("/").filter(Boolean);
-          const liffId = parts[0] || DEFAULT_LIFF_ID;
-          return `https://liff.line.me/${liffId}/${targetPage.replace(/^\/+/, "")}`;
-        }
-        // 2. กรณีอยู่บน GitHub Pages หรือ Subdirectory ทั่วไป
-        const pathname = window.location.pathname;
-        const dir = pathname.substring(0, pathname.lastIndexOf("/") + 1) || "./";
-        return dir + targetPage.replace(/^\/+/, "");
-      }
+
 
       // หากจำเป็นต้อง Auth แต่เปิดใน Browser ทั่วไป -> redirect ไปหน้า Login
       if (requiredAuth) {

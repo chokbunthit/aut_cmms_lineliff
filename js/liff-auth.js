@@ -8,7 +8,7 @@ const LiffAuth = (function () {
   // Config: กำหนด LIFF ID กลางของระบบ (ตรงกับที่ตั้งค่าใน Rich Menu)
   const DEFAULT_LIFF_ID = "2011076529-EKhCiseU";
   //const DEFAULT_LIFF_ID = "2011050588-FTDVMv4L";
-  
+
   const STORAGE_KEY = "cmms_user_session";
 
   let currentUser = null;
@@ -101,7 +101,7 @@ const LiffAuth = (function () {
     saveUser(currentUser);
     try {
       localStorage.setItem(`cmms_user_sheet_${currentUser.userId}`, JSON.stringify(currentUser));
-    } catch (e) {}
+    } catch (e) { }
     return currentUser;
   }
 
@@ -187,7 +187,7 @@ const LiffAuth = (function () {
               // Cache sheet profile so all pages can access instantly
               try {
                 localStorage.setItem(`cmms_user_sheet_${currentUser.userId}`, JSON.stringify(uData));
-              } catch (e) {}
+              } catch (e) { }
 
               // ถ้าเป็น User ใหม่ หรือ ยังไม่ได้ระบุแผนก -> แสดง Modal แจ้งเตือนให้อัปเดต
               const isProfilePage = window.location.pathname.toLowerCase().includes("profile.html");
@@ -230,12 +230,33 @@ const LiffAuth = (function () {
         return currentUser;
       }
 
+      /**
+       * คำนวณ URL ปลายทางให้ถูกต้องตามสภาพแวดล้อม (LINE LIFF, GitHub Pages, Localhost)
+       * ป้องกันปัญหา 404 เมื่อเปลี่ยนหน้า
+       */
+      function getNavigationUrl(targetPage) {
+        if (!targetPage) return "index.html";
+        if (targetPage.startsWith("http://") || targetPage.startsWith("https://") || targetPage.startsWith("//")) {
+          return targetPage;
+        }
+        // 1. กรณีอยู่บน liff.line.me เช่น https://liff.line.me/2011076529-EKhCiseU/...
+        if (window.location.hostname === "liff.line.me") {
+          const parts = window.location.pathname.split("/").filter(Boolean);
+          const liffId = parts[0] || DEFAULT_LIFF_ID;
+          return `https://liff.line.me/${liffId}/${targetPage.replace(/^\/+/, "")}`;
+        }
+        // 2. กรณีอยู่บน GitHub Pages หรือ Subdirectory ทั่วไป
+        const pathname = window.location.pathname;
+        const dir = pathname.substring(0, pathname.lastIndexOf("/") + 1) || "./";
+        return dir + targetPage.replace(/^\/+/, "");
+      }
+
       // หากจำเป็นต้อง Auth แต่เปิดใน Browser ทั่วไป -> redirect ไปหน้า Login
       if (requiredAuth) {
         hideLoading();
         const currentFile = window.location.pathname.split("/").pop() || "index.html";
         const redirectParam = encodeURIComponent(currentFile + window.location.search);
-        window.location.href = `login.html?redirect=${redirectParam}`;
+        window.location.href = getNavigationUrl(`login.html?redirect=${redirectParam}`);
         return null;
       } else {
         // อนุญาต Guest
@@ -270,7 +291,7 @@ const LiffAuth = (function () {
       if (requiredAuth) {
         const currentFile = window.location.pathname.split("/").pop() || "index.html";
         const redirectParam = encodeURIComponent(currentFile + window.location.search);
-        window.location.href = `login.html?redirect=${redirectParam}`;
+        window.location.href = getNavigationUrl(`login.html?redirect=${redirectParam}`);
         return null;
       }
 
@@ -326,9 +347,9 @@ const LiffAuth = (function () {
     if (typeof liff !== "undefined" && liff.isLoggedIn && liff.isLoggedIn()) {
       try {
         liff.logout();
-      } catch (e) {}
+      } catch (e) { }
     }
-    window.location.href = "login.html";
+    window.location.href = getNavigationUrl("login.html");
   }
 
   /**
@@ -403,6 +424,7 @@ const LiffAuth = (function () {
     hideLoading,
     showProfileUpdatePrompt,
     isInLiff,
+    getNavigationUrl,
     DEFAULT_LIFF_ID
   };
 })();

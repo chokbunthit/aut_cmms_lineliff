@@ -322,7 +322,7 @@
 
         <div style="display: flex; flex-direction: column; gap: 8px;">
           <!-- ปุ่มเข้าสู่ระบบ (Login) -->
-          <a href="login.html" id="btnGoLogin" class="btn-primary" style="background: var(--primary-gradient); color: white; font-size: 12px; padding: 10px; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 6px;">
+          <a href="login.html" id="btnGoLogin" onclick="if(window.LiffAuth&&window.LiffAuth.getNavigationUrl){this.href=window.LiffAuth.getNavigationUrl('login.html');}" class="btn-primary" style="background: var(--primary-gradient); color: white; font-size: 12px; padding: 10px; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 6px;">
             <i class="fa-solid fa-arrow-right-to-bracket"></i> เข้าสู่ระบบด้วยบัญชีอื่น (Login)
           </a>
 
@@ -332,7 +332,7 @@
           </button>
 
           <button onclick="clearCacheAndReload()" class="btn-primary" style="background: #f1f5f9; color: var(--text-main); font-size: 12px; padding: 10px; border: 1px solid var(--border-color);">
-            <i class="fa-solid fa-rotate-right"></i> ล้างแคชและเข้าสู่ระบบใหม่
+            <i class="fa-solid fa-rotate-right"></i> ล้างแคชและรีโหลดหน้าใหม่
           </button>
           
           <button onclick="LiffAuth.logout()" class="btn-primary" style="background: #fef2f2; color: #dc2626; font-size: 12px; padding: 10px; border: 1px solid #fecaca;">
@@ -388,7 +388,10 @@
           requiredAuth: true,
           onReady: (user) => {
             if (!user || !user.isLoggedIn || !user.userId) {
-              window.location.href = "login.html";
+              const navUrl = (window.LiffAuth && window.LiffAuth.getNavigationUrl)
+                ? window.LiffAuth.getNavigationUrl("login.html")
+                : "login.html";
+              window.location.href = navUrl;
               return;
             }
             renderLiffUser(user);
@@ -397,7 +400,10 @@
         });
 
         if (!activeUser || !activeUser.isLoggedIn || !activeUser.userId) {
-          window.location.href = "login.html";
+          const navUrl = (window.LiffAuth && window.LiffAuth.getNavigationUrl)
+            ? window.LiffAuth.getNavigationUrl("login.html")
+            : "login.html";
+          window.location.href = navUrl;
           return;
         }
 
@@ -410,7 +416,10 @@
         setupLoginButton(activeUser);
       } catch (err) {
         console.error("Profile Init Error:", err);
-        window.location.href = "login.html";
+        const navUrl = (window.LiffAuth && window.LiffAuth.getNavigationUrl)
+          ? window.LiffAuth.getNavigationUrl("login.html")
+          : "login.html";
+        window.location.href = navUrl;
       } finally {
         LiffAuth.hideLoading();
       }
@@ -634,13 +643,20 @@
     }
 
     /**
-     * ล้างแคชและไปหน้า Login
+     * ล้างแคชและรีโหลดหน้าใหม่
      */
     function clearCacheAndReload() {
-      if (confirm("คุณต้องการล้างข้อมูลแคชและเข้าสู่ระบบใหม่ใช่หรือไม่?")) {
+      if (confirm("คุณต้องการล้างข้อมูลแคชและรีโหลดหน้าใหม่ใช่หรือไม่?")) {
         localStorage.clear();
         sessionStorage.clear();
-        window.location.href = "login.html";
+        // บังคับรีโหลดหน้าเว็บใหม่โดยเพิ่ม timestamp ป้องกันแคชใน LINE WebView
+        try {
+          const url = new URL(window.location.href);
+          url.searchParams.set("_t", Date.now().toString());
+          window.location.replace(url.toString());
+        } catch (e) {
+          window.location.reload();
+        }
       }
     }
 

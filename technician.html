@@ -1977,13 +1977,20 @@
         const targetWO = groupedWorkOrders.find(w => w.woNo === (wo.woNo || wo.wo_code || currentActiveWO));
         const isBM = isBMWorkOrder(wo, data);
 
-        const now = new Date();
-        const defaultDate = closing.endDate ? closing.endDate.split("T")[0] : `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-        let defaultTime = "00:00";
-        if (closing.endDate && closing.endDate.includes("T")) {
-          defaultTime = closing.endDate.split("T")[1].substring(0, 5);
-        } else {
-          defaultTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+        let defaultDate = "";
+        let defaultTime = "";
+        const pad = (n) => String(n).padStart(2, '0');
+        if (closing.endDate) {
+          const d = new Date(closing.endDate);
+          if (!isNaN(d.getTime())) {
+            defaultDate = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+            defaultTime = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+          }
+        }
+        if (!defaultDate) {
+          const now = new Date();
+          defaultDate = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+          defaultTime = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
         }
 
         const bmTasks = data.bmStandardTasks || (data.bmStandardTask ? [data.bmStandardTask] : []);
@@ -2760,7 +2767,8 @@
         if (!isPM) {
           const repairDate = document.getElementById("cmRepairDate")?.value || "";
           const repairTime = document.getElementById("cmRepairTime")?.value || "";
-          const finalEndDate = (repairDate && repairTime) ? `${repairDate}T${repairTime}:00` : new Date().toISOString();
+          const cleanTime = repairTime.length === 5 ? `${repairTime}:00` : repairTime;
+          const finalEndDate = (repairDate && repairTime) ? `${repairDate}T${cleanTime}+07:00` : new Date().toISOString();
 
           closingData.repairDate = repairDate;
           closingData.repairTime = repairTime;

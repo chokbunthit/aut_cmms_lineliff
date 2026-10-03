@@ -2066,12 +2066,12 @@
 
             <div class="form-group">
               <label class="form-label">สาเหตุของปัญหา / ความเสียหาย (Root Cause) <span class="required">*</span></label>
-              <textarea id="cmRootCause" class="form-textarea" placeholder="ระบุสาเหตุที่ทำให้เครื่องจักรหยุดทำงานหรือเสียหาย...">${closing.rootCause || ''}</textarea>
+              <textarea id="cmRootCause" class="form-textarea" placeholder="ระบุสาเหตุที่ทำให้เครื่องจักรหยุดทำงานหรือเสียหาย..." required></textarea><!--${closing.rootCause || ''}-->
             </div>
 
             <div class="form-group">
               <label class="form-label">วิธีการแก้ไข / งานที่ทำ (Action Taken) <span class="required">*</span></label>
-              <textarea id="cmActionTaken" class="form-textarea" placeholder="ระบุขั้นตอนการแก้ไข เช่น เปลี่ยนอะไหล่, ปรับเทียบระบบ...">${closing.actionTaken || ''}</textarea>
+              <textarea id="cmActionTaken" class="form-textarea" placeholder="ระบุขั้นตอนการแก้ไข เช่น เปลี่ยนอะไหล่, ปรับเทียบระบบ..." required>${closing.actionTaken || ''}</textarea>
             </div>
 
             <!-- Repair Finished Date & Time (แยกวันที่ และเวลา 24 ชม.) -->
@@ -2684,6 +2684,21 @@
     function openCloseModal() {
       const wo = (currentDrawerData && currentDrawerData.wo) || {};
       const isBM = isBMWorkOrder(wo, currentDrawerData);
+	  
+	  if (isBM) {
+        const rootCause = document.getElementById("cmRootCause")?.value?.trim();
+        const actionTaken = document.getElementById("cmActionTaken")?.value?.trim();
+        if (!rootCause||!actionTaken) {
+          closeCloseModal();
+          alert("⚠️ กรุณาใส่ข้อมูล ปัญหา และ การแก้ไข ก่อนทำการบันทึกปิดใบงาน BM");    
+		  if (!rootCause) {
+			 document.getElementById("cmRootCause").focus();
+		  }else{
+			 document.getElementById("cmActionTaken").focus();
+		  }
+          return;
+        }
+      }
 
       // ตรวจสอบเงื่อนไขใบงาน Type BM: บังคับเลือก Downtime Code ก่อนบันทึก
       if (isBM) {
@@ -2744,6 +2759,8 @@
           return;
         }
       }
+	  
+	 
 
       closeCloseModal();
 

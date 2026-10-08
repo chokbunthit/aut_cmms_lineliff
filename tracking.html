@@ -823,6 +823,7 @@
         const payload = {
           requestCode: requestCode,
           ticketNo: requestCode,
+          workorderCode: currentSelectedTicket.workorderCode || currentSelectedTicket.workorder_code || currentSelectedTicket.woCode || "",
           satisfactionScore: currentRatingScore,
           satisfactionFeedback: feedback,
           feedback: feedback,

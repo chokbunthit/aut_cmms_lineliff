@@ -280,17 +280,22 @@ const CmmsApi = (function () {
   /**
    * 14. ดึงขั้นตอนการปฏิบัติงาน Task List สำหรับงาน PM (PM Steps)
    */
-  async function getTaskListData(taskNo, pmType) {
-    const key = `${taskNo || ""}_${pmType || ""}`.trim();
+  async function getTaskListData(taskNo, pmType, taskId = null, componentCode = null) {
+    const key = taskId
+      ? `id_${taskId}`
+      : `${taskNo || ""}_${pmType || ""}_${componentCode || ""}`.trim();
     if (taskListCache[key]) {
       return taskListCache[key];
     }
     try {
       let res;
+      const payload = { taskNo, pmType };
+      if (taskId) payload.taskId = taskId;
+      if (componentCode) payload.componentCode = componentCode;
       try {
-        res = await request("getTaskListData", { taskNo, pmType }, "POST");
+        res = await request("getTaskListData", payload, "POST");
       } catch (postErr) {
-        res = await request("getTaskListData", { taskNo, pmType }, "GET");
+        res = await request("getTaskListData", payload, "GET");
       }
       const data = (res && res.status === "success" && res.data) ? res.data : (res && res.steps ? res : { groupName: "", pmType: pmType, steps: [] });
       taskListCache[key] = data;

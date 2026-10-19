@@ -1852,6 +1852,7 @@
                     ${escapeHtml(comp.equipment_name || comp.component_name || comp.equipment || `อุปกรณ์ชิ้นที่ ${idx + 1}`)}
                   </span>
                   ${comp.task_no ? `<span class="badge-task-no">${escapeHtml(comp.task_no)}</span>` : ""}
+                  ${(comp.task_category || comp.task_name) ? `<span class="badge" style="font-size: 10px; background: #e0f2fe; color: #0284c7; padding: 1px 6px; border-radius: 4px; font-weight: 600;">${escapeHtml(comp.task_category || comp.task_name)}</span>` : ""}
                   ${comp.pm_type ? `<span class="badge-pm-type">${escapeHtml(comp.pm_type)}</span>` : ""}
                 </div>
                 <div class="accordion-header-right">
@@ -1864,14 +1865,22 @@
               <div class="accordion-body ${shouldOpen ? 'open' : ''}" id="body_${compKey}">
                 <!-- 1. Task Steps Reference Box (Steps list) -->
                 <div class="task-steps-box" id="taskStepsBox_${compKey}">
-                  <div class="task-steps-header">
-                    <i class="fa-solid fa-list-check" style="color: #2563eb;"></i>
-                    <span>Task: ${escapeHtml(comp.task_no || '-')} | ${escapeHtml(comp.pm_type || '-')}</span>
+                  <div class="task-steps-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                      <i class="fa-solid fa-list-check" style="color: #2563eb;"></i>
+                      <span style="font-weight: 700;">Task: ${escapeHtml(comp.task_no || '-')} | ${escapeHtml(comp.task_category || comp.task_name || 'บำรุงรักษาเชิงป้องกัน')}</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 6px; font-size: 11px;">
+                      <span class="badge-pm-type" style="margin: 0;">รอบ: ${escapeHtml(comp.pm_type || comp.pm_cycle || '-')}</span>
+                      ${(comp.equipment_code || comp.component_code) ? `<span style="color: #64748b; font-size: 10.5px;">(${escapeHtml(comp.equipment_code || comp.component_code)})</span>` : ''}
+                    </div>
                   </div>
                   <div class="task-steps-content" id="taskStepsList_${compKey}">
-                    <div style="font-size: 11px; color: var(--text-muted);">
-                      <i class="fa-solid fa-spinner animate-spin"></i> กำลังโหลดขั้นตอน...
-                    </div>
+                    ${(Array.isArray(comp.steps) && comp.steps.length > 0) ? renderPMStepsHtml(comp.steps) : `
+                      <div style="font-size: 11px; color: var(--text-muted);">
+                        <i class="fa-solid fa-spinner animate-spin"></i> กำลังโหลดขั้นตอน...
+                      </div>
+                    `}
                   </div>
                 </div>
 
@@ -1964,10 +1973,12 @@
 
         container.innerHTML = html;
 
-        // Load Task Steps for all PM components
+        // Load Task Steps for PM components only if steps were not preloaded
         components.forEach((comp, idx) => {
           const compKey = `${comp.task_no || 'T'}_${comp.equipment_code || comp.component_code || 'C'}_${idx}`.replace(/[^a-zA-Z0-9]/g, '_');
-          loadTaskStepsForPM(compKey, comp.task_no, comp.pm_type);
+          if (!Array.isArray(comp.steps) || comp.steps.length === 0) {
+            loadTaskStepsForPM(compKey, comp.task_no, comp.pm_type, comp.task_id || comp.taskId, comp.equipment_code || comp.component_code);
+          }
         });
 
       } else {
@@ -2576,21 +2587,44 @@
     }
 
     /**
-     * ดึงขั้นตอน Task List (PM Steps) มาแสดงในกล่องอ้างอิง
+     * เรนเดอร์รายการขั้นตอนมาตรฐาน PM Steps
      */
-    async function loadTaskStepsForPM(safeKey, taskNo, pmType) {
+    function renderPMStepsHtml(steps) {
+      if (!steps || !Array.isArray(steps) || steps.length === 0) {
+        return `
+          <div class="task-step-item">
+            <span class="task-step-num">1</span>
+            <span class="task-step-text">ตรวจสอบสภาพทั่วไป จุดยึดแน่น และการทำงานของอุปกรณ์</span>
+          </div>
+        `;
+      }
+      return steps.map((s, idx) => {
+        const num = (typeof s === 'object' && s && s.stepNo) ? s.stepNo : (idx + 1);
+        const name = typeof s === 'string' ? s : (s && (s.stepName || s.desc || s.step || ''));
+        const standard = (typeof s === 'object' && s && s.standard) ? s.standard : '';
+        return `
+          <div class="task-step-item">
+            <span class="task-step-num">${num}</span>
+            <span class="task-step-text">
+              ${escapeHtml(name)}
+              ${standard ? `<span style="display: block; font-size: 10px; color: #64748b; margin-top: 2px;">(มาตรฐาน: ${escapeHtml(standard)})</span>` : ''}
+            </span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    /**
+     * ดึงขั้นตอน Task List (PM Steps) มาแสดงในกล่องอ้างอิง (กรณีไม่มีข้อมูล preloaded มาจาก Drawer)
+     */
+    async function loadTaskStepsForPM(safeKey, taskNo, pmType, taskId = null, compCode = null) {
       const container = document.getElementById(`taskStepsList_${safeKey}`);
       if (!container) return;
 
       try {
-        const data = await CmmsApi.getTaskListData(taskNo, pmType);
+        const data = await CmmsApi.getTaskListData(taskNo, pmType, taskId, compCode);
         if (data && data.steps && data.steps.length > 0) {
-          container.innerHTML = data.steps.map(s => `
-            <div class="task-step-item">
-              <span class="task-step-num">${s.stepNo}</span>
-              <span class="task-step-text">${escapeHtml(s.stepName)}</span>
-            </div>
-          `).join('');
+          container.innerHTML = renderPMStepsHtml(data.steps);
         } else {
           // Standard default inspection steps
           const defaultSteps = [
@@ -2599,12 +2633,7 @@
             { stepNo: 3, stepName: "ตรวจเช็คระบบหล่อลื่น ขั้วต่อสายไฟ และอุปกรณ์ป้องกัน" },
             { stepNo: 4, stepName: "ทดสอบการทำงานและวัดค่าพารามิเตอร์หลังการบำรุงรักษา" }
           ];
-          container.innerHTML = defaultSteps.map(s => `
-            <div class="task-step-item">
-              <span class="task-step-num">${s.stepNo}</span>
-              <span class="task-step-text">${escapeHtml(s.stepName)}</span>
-            </div>
-          `).join('');
+          container.innerHTML = renderPMStepsHtml(defaultSteps);
         }
       } catch (err) {
         console.warn("loadTaskStepsForPM error:", err);
@@ -2613,12 +2642,7 @@
           { stepNo: 2, stepName: "ทำความสะอาดและตรวจสอบระบบหล่อลื่น" },
           { stepNo: 3, stepName: "ทดสอบการเดินเครื่องและบันทึกค่าพารามิเตอร์" }
         ];
-        container.innerHTML = defaultSteps.map(s => `
-          <div class="task-step-item">
-            <span class="task-step-num">${s.stepNo}</span>
-            <span class="task-step-text">${escapeHtml(s.stepName)}</span>
-          </div>
-        `).join('');
+        container.innerHTML = renderPMStepsHtml(defaultSteps);
       }
     }
 

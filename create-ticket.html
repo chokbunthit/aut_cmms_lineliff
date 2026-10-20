@@ -235,6 +235,20 @@
             <i class="fa-solid fa-list-check"></i> ติดตามงาน
           </a>
         </div>
+      <!-- Scanned Asset Info Banner (แสดงเมื่อส่งค่าจาก QR Code) -->
+      <div id="scannedAssetBanner" style="display: none; background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border: 1.5px solid #bfdbfe; border-radius: var(--radius-md); padding: 10px 14px; margin-bottom: 12px; align-items: center; justify-content: space-between; gap: 8px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 32px; height: 32px; border-radius: 8px; background: #2563eb; color: white; display: flex; align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0;">
+            <i class="fa-solid fa-qrcode"></i>
+          </div>
+          <div style="min-width: 0;">
+            <div style="font-size: 10px; color: #1e40af; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px;">ข้อมูลเครื่องจักรจาก QR Code</div>
+            <div id="scannedAssetTitle" style="font-size: 13px; font-weight: 700; color: #1e3a8a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">-</div>
+          </div>
+        </div>
+        <a id="scannedAssetHubLink" href="asset.html" style="font-size: 11px; color: #2563eb; font-weight: 700; text-decoration: none; flex-shrink: 0; background: white; padding: 4px 8px; border-radius: 6px; border: 1px solid #bfdbfe;">
+          ดูเครื่อง <i class="fa-solid fa-chevron-right" style="font-size: 9px;"></i>
+        </a>
       </div>
 
       <!-- Request Form Card -->
@@ -478,12 +492,52 @@
 
     function checkUrlParams() {
       const params = new URLSearchParams(window.location.search);
-      const assetParam = params.get("asset");
+      const assetParam = (params.get("asset") || params.get("code") || params.get("machine") || params.get("id") || "").trim();
+      const compParam = (params.get("comp") || params.get("component") || "").trim();
+      const typeParam = (params.get("type") || params.get("reqType") || "").trim();
+
       if (assetParam) {
         const assetInput = document.getElementById("reqAsset");
         if (assetInput) {
           assetInput.value = assetParam;
           onAssetInput(assetParam);
+
+          // อัปเดตข้อความบนแบนเนอร์ QR Code
+          const banner = document.getElementById("scannedAssetBanner");
+          const title = document.getElementById("scannedAssetTitle");
+          const hubLink = document.getElementById("scannedAssetHubLink");
+          if (banner && title) {
+            const upper = assetParam.toUpperCase();
+            const matched = rawAssets.find(a => 
+              (a.assetCode && a.assetCode.toUpperCase() === upper) ||
+              (a.asset_code && a.asset_code.toUpperCase() === upper)
+            );
+            const mName = matched ? (matched.machineName || matched.asset_name || "") : "";
+            title.textContent = mName ? `${assetParam} - ${mName}` : assetParam;
+            if (hubLink) hubLink.href = `asset.html?asset=${encodeURIComponent(assetParam)}`;
+            banner.style.display = "flex";
+          }
+        }
+      }
+
+      if (compParam) {
+        const compInput = document.getElementById("reqComp");
+        if (compInput) {
+          compInput.value = compParam;
+          if (typeof onComponentChange === "function") {
+            onComponentChange(compParam);
+          }
+        }
+      }
+
+      if (typeParam) {
+        const upperType = typeParam.toUpperCase();
+        const radio = document.querySelector(`input[name="reqType"][value="${upperType}"]`);
+        if (radio) {
+          radio.checked = true;
+          if (typeof onReqTypeChange === "function") {
+            onReqTypeChange(upperType);
+          }
         }
       }
     }

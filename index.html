@@ -291,6 +291,14 @@
 
     // เริ่มต้นระบบ LIFF เมื่อเปิดหน้า
     window.addEventListener("load", async () => {
+      // ตรวจสอบว่ามี parameter เครื่องจักรมาด้วยหรือไม่ (เช่น มาจากการสแกน QR Code หน้าเครื่อง)
+      const urlParams = new URLSearchParams(window.location.search);
+      const assetParam = (urlParams.get("asset") || urlParams.get("code") || urlParams.get("machine") || urlParams.get("id") || "").trim();
+      if (assetParam) {
+        window.location.replace(`asset.html?asset=${encodeURIComponent(assetParam)}`);
+        return;
+      }
+
       LiffAuth.showLoading("กำลังโหลดแดชบอร์ด...", "กรุณารอสักครู่");
 
       try {
@@ -604,10 +612,13 @@
       try {
         const scanned = await LiffAuth.scanQRCode();
         if (scanned) {
-          window.location.href = `create-ticket.html?asset=${encodeURIComponent(scanned)}`;
+          window.location.href = `asset.html?asset=${encodeURIComponent(scanned)}`;
         }
       } catch (e) {
-        alert(e.message || "ไม่สามารถเปิดกล้องสแกน QR ได้");
+        const manualCode = prompt("กรุณาระบุรหัสเครื่องจักร (Asset Code) เช่น FA-CR001:");
+        if (manualCode && manualCode.trim()) {
+          window.location.href = `asset.html?asset=${encodeURIComponent(manualCode.trim())}`;
+        }
       }
     }
 

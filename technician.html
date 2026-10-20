@@ -1077,6 +1077,7 @@
         groupTasksByWorkOrder();
         renderStatsAndBadges();
         renderWorkOrdersList();
+        handleUrlParams();
       } catch (e) {
         console.error("fetchTechnicianWork Error:", e);
         const container = document.getElementById("workOrdersContainer");
@@ -1299,6 +1300,37 @@
       if (badgePM) badgePM.textContent = countPmPending;
       if (badgePending) badgePending.textContent = countPendingApproval;
       if (badgeDone) badgeDone.textContent = countDone;
+    }
+
+    /**
+     * ตรวจสอบ Query String จาก URL (เช่น มาจาก QR Code: ?asset=MC-001&filter=pm)
+     */
+    function handleUrlParams() {
+      const params = new URLSearchParams(window.location.search);
+      const filterParam = (params.get("filter") || params.get("tab") || "").toLowerCase().trim();
+      const assetParam = (params.get("asset") || params.get("code") || params.get("machine") || "").trim();
+      const woParam = (params.get("wo") || params.get("wono") || "").trim();
+
+      if (filterParam) {
+        if (["pm", "bm", "cm", "pending_approval", "done", "all"].includes(filterParam)) {
+          setTaskFilter(filterParam);
+        }
+      }
+
+      if (assetParam) {
+        const searchInput = document.getElementById("searchInput");
+        if (searchInput) {
+          searchInput.value = assetParam;
+          handleSearchFilter();
+        }
+      }
+
+      if (woParam) {
+        const targetWO = groupedWorkOrders.find(w => (w.woNo || "").toUpperCase() === woParam.toUpperCase());
+        if (targetWO && typeof openWorkOrderDetail === "function") {
+          openWorkOrderDetail(targetWO.woNo);
+        }
+      }
     }
 
     /**

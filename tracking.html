@@ -452,6 +452,15 @@
       const params = new URLSearchParams(window.location.search);
       const statusParam = params.get("status") || params.get("filter");
       const ticketParam = params.get("ticket");
+      const assetParam = (params.get("asset") || params.get("code") || params.get("machine") || "").trim();
+
+      if (assetParam) {
+        const searchInput = document.getElementById("searchInput");
+        if (searchInput) {
+          searchInput.value = assetParam;
+        }
+        handleSearch(assetParam);
+      }
 
       if (statusParam) {
         const paramLower = statusParam.toLowerCase();

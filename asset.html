@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/x-icon" href="favicon.ico" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AUT CMMS - ข้อมูลเครื่องจักร & จัดการซ่อมบำรุง</title>
+
+  <!-- Central Stylesheet -->
+  <link rel="stylesheet" href="css/style.css" />
+
+  <!-- FontAwesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" />
+
+  <!-- LINE LIFF SDK -->
+  <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+  <style>
+    /* Machine Hero Section */
+    .machine-hero {
+      position: relative;
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      color: white;
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      margin-bottom: 16px;
+      box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .machine-hero-cover {
+      width: 100%;
+      height: 180px;
+      background: #334155;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .machine-hero-cover img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .machine-cover-fallback {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #94a3b8;
+      gap: 8px;
+    }
+
+    .machine-cover-fallback i {
+      font-size: 44px;
+      color: #64748b;
+    }
+
+    .machine-hero-body {
+      padding: 16px;
+    }
+
+    .machine-code-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .machine-code-tag {
+      background: rgba(37, 99, 235, 0.25);
+      color: #93c5fd;
+      border: 1px solid rgba(147, 197, 253, 0.3);
+      padding: 3px 10px;
+      border-radius: var(--radius-full);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .machine-name-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #ffffff;
+      line-height: 1.3;
+      margin-bottom: 10px;
+    }
+
+    .machine-meta-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: var(--radius-md);
+      padding: 10px 12px;
+      font-size: 11.5px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .machine-meta-item {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .machine-meta-label {
+      color: #94a3b8;
+      font-size: 10px;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+
+    .machine-meta-val {
+      color: #f1f5f9;
+      font-weight: 600;
+      margin-top: 1px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Status Pills */
+    .machine-status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 10.5px;
+      font-weight: 700;
+      padding: 3px 9px;
+      border-radius: 12px;
+    }
+
+    .status-operational {
+      background: #064e3b;
+      color: #6ee7b7;
+      border: 1px solid #059669;
+    }
+
+    .status-breakdown {
+      background: #7f1d1d;
+      color: #fca5a5;
+      border: 1px solid #dc2626;
+      animation: pulseAlert 2s infinite;
+    }
+
+    .status-maintenance {
+      background: #78350f;
+      color: #fde68a;
+      border: 1px solid #d97706;
+    }
+
+    @keyframes pulseAlert {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.75; }
+    }
+
+    /* Action Cards */
+    .action-header-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .action-card-btn {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 16px;
+      border-radius: var(--radius-lg);
+      text-decoration: none;
+      margin-bottom: 10px;
+      transition: all 0.2s ease;
+      position: relative;
+      overflow: hidden;
+      border: 1.5px solid transparent;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.04);
+    }
+
+    .action-card-btn:active {
+      transform: scale(0.985);
+    }
+
+    .action-repair {
+      background: linear-gradient(135deg, #ffffff 0%, #fef2f2 100%);
+      border-color: #fecaca;
+    }
+
+    .action-repair .action-icon-box {
+      background: #fee2e2;
+      color: #dc2626;
+    }
+
+    .action-repair:hover {
+      border-color: #ef4444;
+      box-shadow: 0 6px 16px rgba(239, 68, 68, 0.12);
+    }
+
+    .action-pm {
+      background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);
+      border-color: #bbf7d0;
+    }
+
+    .action-pm .action-icon-box {
+      background: #dcfce7;
+      color: #16a34a;
+    }
+
+    .action-pm:hover {
+      border-color: #22c55e;
+      box-shadow: 0 6px 16px rgba(34, 197, 94, 0.12);
+    }
+
+    .action-history {
+      background: linear-gradient(135deg, #ffffff 0%, #eff6ff 100%);
+      border-color: #bfdbfe;
+    }
+
+    .action-history .action-icon-box {
+      background: #dbeafe;
+      color: #2563eb;
+    }
+
+    .action-history:hover {
+      border-color: #3b82f6;
+      box-shadow: 0 6px 16px rgba(37, 99, 235, 0.12);
+    }
+
+    .action-icon-box {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .action-text-area {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .action-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .action-desc {
+      font-size: 11.5px;
+      color: var(--text-muted);
+      margin-top: 2px;
+      line-height: 1.35;
+    }
+
+    .action-arrow {
+      color: #94a3b8;
+      font-size: 13px;
+      flex-shrink: 0;
+    }
+
+    /* Active Ticket Warning Card */
+    .active-ticket-alert {
+      background: #fffbeb;
+      border: 1.5px solid #fde68a;
+      border-radius: var(--radius-md);
+      padding: 12px;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    .active-ticket-alert i {
+      color: #d97706;
+      font-size: 18px;
+      margin-top: 2px;
+      flex-shrink: 0;
+    }
+
+    /* Sub-components Accordion */
+    .component-card {
+      background: white;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      margin-bottom: 8px;
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      transition: all 0.15s;
+    }
+
+    .component-card:hover {
+      border-color: #cbd5e1;
+      background: #f8fafc;
+    }
+
+    .comp-btn-report {
+      font-size: 11px;
+      padding: 5px 9px;
+      border-radius: 6px;
+      border: 1px solid #fecaca;
+      background: #fff1f2;
+      color: #e11d48;
+      text-decoration: none;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      white-space: nowrap;
+    }
+
+    .comp-btn-report:hover {
+      background: #ffe4e6;
+    }
+
+    /* Empty state */
+    .asset-not-found-card {
+      background: white;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 30px 20px;
+      text-align: center;
+      margin-top: 20px;
+    }
+
+    .asset-not-found-card i {
+      font-size: 48px;
+      color: #ef4444;
+      margin-bottom: 12px;
+    }
+
+    /* Copy Toast */
+    #copyToast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: rgba(15, 23, 42, 0.95);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+      transition: transform 0.25s ease;
+      z-index: 100;
+      pointer-events: none;
+    }
+
+    #copyToast.show {
+      transform: translateX(-50%) translateY(0);
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- =========================================================
+       LOADING OVERLAY
+  ========================================================== -->
+  <div id="loadingOverlay">
+    <div class="loading-icon-wrapper">
+      <div class="loading-spinner"></div>
+      <i class="fa-solid fa-qrcode loading-tool-icon"></i>
+    </div>
+    <div id="loadingText">กำลังโหลดข้อมูลเครื่องจักร...</div>
+    <div id="loadingSubText">กรุณารอสักครู่</div>
+    <div class="loading-progress">
+      <div class="loading-progress-bar"></div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="copyToast">
+    <i class="fa-solid fa-circle-check" style="color: #4ade80;"></i>
+    <span id="copyToastText">คัดลอกลิงก์สำเร็จ</span>
+  </div>
+
+  <!-- =========================================================
+       APP CONTAINER
+  ========================================================== -->
+  <div class="app-container">
+
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-brand">
+        <a href="index.html" class="header-icon-btn" title="กลับหน้าแรก">
+          <i class="fa-solid fa-arrow-left"></i>
+        </a>
+        <div>
+          <h1 class="header-title">Asset Hub</h1>
+          <p class="header-subtitle">ศูนย์ข้อมูลเครื่องจักร & ซ่อมบำรุง</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="header-icon-btn" onclick="shareAssetLink()" title="แชร์ / คัดลอกลิงก์ QR">
+          <i class="fa-solid fa-share-nodes"></i>
+        </button>
+        <button class="header-icon-btn" onclick="loadAssetData()" title="รีเฟรชข้อมูล">
+          <i class="fa-solid fa-rotate-right"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content fade-in">
+
+      <!-- View: Asset Found -->
+      <div id="assetFoundView" style="display: none;">
+
+        <!-- Active Maintenance Alert (แสดงเมื่อมี Ticket กำลังดำเนินการ) -->
+        <div id="activeTicketAlert" class="active-ticket-alert" style="display: none;">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          <div style="flex: 1; min-width: 0;">
+            <div style="font-size: 12px; font-weight: 700; color: #92400e;">
+              มีใบแจ้งซ่อมกำลังดำเนินการ
+            </div>
+            <div id="activeTicketDesc" style="font-size: 11px; color: #b45309; margin-top: 2px;">
+              -
+            </div>
+            <a id="activeTicketLink" href="tracking.html" style="font-size: 11px; font-weight: 700; color: #b45309; text-decoration: underline; margin-top: 4px; display: inline-block;">
+              ดูรายละเอียดใบงาน <i class="fa-solid fa-chevron-right" style="font-size: 9px;"></i>
+            </a>
+          </div>
+        </div>
+
+        <!-- Machine Hero Card -->
+        <div class="machine-hero">
+          <div class="machine-hero-cover" id="machineCoverBox">
+            <div class="machine-cover-fallback">
+              <i class="fa-solid fa-gears"></i>
+              <span style="font-size: 11px;">AUT Industrial Equipment</span>
+            </div>
+          </div>
+          <div class="machine-hero-body">
+            <div class="machine-code-row">
+              <div class="machine-code-tag">
+                <i class="fa-solid fa-qrcode"></i>
+                <span id="assetCodeText">-</span>
+              </div>
+              <div id="machineStatusPill" class="machine-status-pill status-operational">
+                <i class="fa-solid fa-circle" style="font-size: 7px;"></i>
+                <span id="machineStatusText">พร้อมใช้งาน</span>
+              </div>
+            </div>
+
+            <h2 id="assetNameText" class="machine-name-title">-</h2>
+
+            <div class="machine-meta-grid">
+              <div class="machine-meta-item">
+                <span class="machine-meta-label">แผนก (Department)</span>
+                <span id="assetDeptText" class="machine-meta-val">-</span>
+              </div>
+              <div class="machine-meta-item">
+                <span class="machine-meta-label">ตำแหน่ง (Location)</span>
+                <span id="assetLocText" class="machine-meta-val">-</span>
+              </div>
+              <div class="machine-meta-item">
+                <span class="machine-meta-label">กลุ่มเครื่อง (Group)</span>
+                <span id="assetGroupText" class="machine-meta-val">-</span>
+              </div>
+              <div class="machine-meta-item">
+                <span class="machine-meta-label">ความสำคัญ (Ranking)</span>
+                <span id="assetRankText" class="machine-meta-val">-</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Cards Grid (ปุ่มหลักในการใช้งาน) -->
+        <div class="action-header-title">
+          <i class="fa-solid fa-bolt" style="color: var(--primary);"></i>
+          <span>เลือกคำสั่งที่ต้องการทำ</span>
+        </div>
+
+        <!-- 1. แจ้งซ่อมด่วน -->
+        <a id="btnReportRepair" href="create-ticket.html" class="action-card-btn action-repair">
+          <div class="action-icon-box">
+            <i class="fa-solid fa-wrench"></i>
+          </div>
+          <div class="action-text-area">
+            <div class="action-title" style="color: #991b1b;">
+              <span>แจ้งซ่อมเครื่องจักร (Request Repair)</span>
+              <span style="background: #fecaca; color: #dc2626; font-size: 9.5px; padding: 1px 6px; border-radius: 4px; font-weight: 800;">BM / CM</span>
+            </div>
+            <div class="action-desc">
+              เครื่องเสีย, ผิดปกติ, หยุดไลน์ผลิต หรือชำรุด ระบบจะกรอกรหัสเครื่องนี้ให้อัตโนมัติ
+            </div>
+          </div>
+          <div class="action-arrow">
+            <i class="fa-solid fa-chevron-right"></i>
+          </div>
+        </a>
+
+        <!-- 2. ตรวจเช็ค / ทำ PM -->
+        <a id="btnDoPM" href="technician.html" class="action-card-btn action-pm">
+          <div class="action-icon-box">
+            <i class="fa-solid fa-calendar-check"></i>
+          </div>
+          <div class="action-text-area">
+            <div class="action-title" style="color: #166534;">
+              <span>บันทึกตรวจเช็ค PM (Preventive)</span>
+              <span style="background: #bbf7d0; color: #16a34a; font-size: 9.5px; padding: 1px 6px; border-radius: 4px; font-weight: 800;">PM</span>
+            </div>
+            <div class="action-desc">
+              สำหรับช่างบำรุงรักษา ตรวจสอบตามเช็คลิสต์ประจำรอบและบันทึกผล
+            </div>
+          </div>
+          <div class="action-arrow">
+            <i class="fa-solid fa-chevron-right"></i>
+          </div>
+        </a>
+
+        <!-- 3. ดูประวัติการซ่อมบำรุง -->
+        <a id="btnHistory" href="tracking.html" class="action-card-btn action-history">
+          <div class="action-icon-box">
+            <i class="fa-solid fa-clock-rotate-left"></i>
+          </div>
+          <div class="action-text-area">
+            <div class="action-title" style="color: #1e40af;">
+              <span>ประวัติการซ่อมบำรุง (Maintenance History)</span>
+            </div>
+            <div class="action-desc">
+              ตรวจสอบประวัติการแจ้งซ่อมที่ผ่านมา การเปลี่ยนอะไหล่ และอาการเสีย
+            </div>
+          </div>
+          <div class="action-arrow">
+            <i class="fa-solid fa-chevron-right"></i>
+          </div>
+        </a>
+
+        <!-- Sub-Components Section (ถ้ามีชิ้นส่วนย่อย) -->
+        <div id="componentsSection" style="display: none; margin-top: 18px;">
+          <div class="action-header-title">
+            <i class="fa-solid fa-puzzle-piece" style="color: #8b5cf6;"></i>
+            <span>ชิ้นส่วนและอุปกรณ์ย่อย (Components)</span>
+            <span id="componentsCountBadge" style="background: #ede9fe; color: #6d28d9; font-size: 10px; padding: 1px 6px; border-radius: 8px; font-weight: 700;">0</span>
+          </div>
+          <div id="componentsListContainer"></div>
+        </div>
+
+        <!-- Recent Maintenance List -->
+        <div id="recentHistorySection" style="margin-top: 20px;">
+          <div class="action-header-title">
+            <i class="fa-solid fa-list-check" style="color: var(--secondary);"></i>
+            <span>ประวัติซ่อมล่าสุดของเครื่องนี้</span>
+          </div>
+          <div id="recentTicketsContainer">
+            <div style="font-size: 12px; color: var(--text-muted); text-align: center; padding: 12px; background: white; border: 1px solid var(--border-color); border-radius: var(--radius-md);">
+              กำลังค้นหาประวัติงานซ่อม...
+            </div>
+          </div>
+        </div>
+
+        <!-- QR Code Reference Card -->
+        <div style="background: white; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 14px; margin-top: 20px; text-align: center;">
+          <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">
+            <i class="fa-solid fa-qrcode" style="margin-right: 4px;"></i> ลิงก์สำหรับสร้าง QR Code เครื่องนี้
+          </div>
+          <div id="qrDirectUrlText" style="font-size: 10px; color: #475569; background: #f8fafc; padding: 6px 8px; border-radius: 6px; word-break: break-all; border: 1px dashed #cbd5e1; font-family: monospace;">
+            -
+          </div>
+          <button type="button" onclick="copyQRLink()" class="btn-primary" style="margin-top: 10px; width: 100%; font-size: 12px; padding: 8px 14px; justify-content: center;">
+            <i class="fa-regular fa-copy"></i> คัดลอกลิงก์สำหรับใส่ใน Google Sheets
+          </button>
+        </div>
+
+      </div>
+
+      <!-- View: Asset Not Found / Blank State -->
+      <div id="assetNotFoundView" style="display: none;" class="asset-not-found-card">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <h2 style="font-size: 16px; font-weight: 700; color: var(--text-main); margin-bottom: 6px;">ไม่พบข้อมูลเครื่องจักร</h2>
+        <p id="assetNotFoundMessage" style="font-size: 12.5px; color: var(--text-muted); line-height: 1.5; margin-bottom: 18px;">
+          ไม่พบรหัสเครื่องจักรในระบบ หรืออาจยังไม่ได้ระบุรหัสเครื่องจักรใน URL
+        </p>
+
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <a href="create-ticket.html" class="btn-primary" style="justify-content: center; text-decoration: none; padding: 10px;">
+            <i class="fa-solid fa-paper-plane"></i> ไปหน้าแจ้งซ่อมทั่วไป
+          </a>
+          <a href="index.html" class="btn-primary" style="justify-content: center; text-decoration: none; padding: 10px; background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1;">
+            <i class="fa-solid fa-house"></i> กลับหน้าหลัก
+          </a>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/api.js"></script>
+  <script src="js/liff-auth.js"></script>
+
+  <script>
+    let currentAssetCode = "";
+    let matchedAsset = null;
+    let matchedComponents = [];
+    let assetTickets = [];
+
+    document.addEventListener("DOMContentLoaded", async function () {
+      try {
+        await LiffAuth.init({
+          requiredAuth: false,
+          onReady: (user) => {
+            console.log("LIFF Ready in asset.html:", user);
+          }
+        });
+
+        await loadAssetData();
+      } catch (err) {
+        console.error("Init Error in asset.html:", err);
+        showNotFound("เกิดข้อผิดพลาดในการโหลดระบบ: " + (err.message || err));
+      } finally {
+        LiffAuth.hideLoading();
+      }
+    });
+
+    /**
+     * ดึง Parameter จาก URL และโหลดข้อมูลเครื่องจักร
+     */
+    async function loadAssetData() {
+      LiffAuth.showLoading("กำลังค้นหาข้อมูลเครื่องจักร...", "กรุณารอสักครู่");
+
+      const params = new URLSearchParams(window.location.search);
+      currentAssetCode = (params.get("asset") || params.get("code") || params.get("id") || params.get("machine") || "").trim();
+
+      if (!currentAssetCode) {
+        LiffAuth.hideLoading();
+        showNotFound("กรุณาสแกน QR Code ที่ติดหน้าเครื่องจักร หรือระบุรหัส Asset ผ่าน URL เช่น ?asset=MC-001");
+        return;
+      }
+
+      try {
+        // 1. ดึง Master Machines จาก API
+        const res = await CmmsApi.getMachines();
+        let rawAssets = [];
+        let rawComponents = [];
+
+        if (res && res.status === "success") {
+          rawAssets = res.data?.assets || [];
+          rawComponents = res.data?.components || [];
+        }
+
+        // ค้นหาเครื่องจักรที่ตรงกับ currentAssetCode
+        const upperCode = currentAssetCode.toUpperCase();
+        matchedAsset = rawAssets.find(a => 
+          (a.assetCode && a.assetCode.toUpperCase() === upperCode) ||
+          (a.asset_code && a.asset_code.toUpperCase() === upperCode)
+        );
+
+        // หากไม่เจอตรงๆ ลองตรวจว่าเป็นรหัส Component หรือไม่
+        if (!matchedAsset) {
+          const compMatch = rawComponents.find(c => c.compCode && c.compCode.toUpperCase() === upperCode);
+          if (compMatch && compMatch.assetCode) {
+            matchedAsset = rawAssets.find(a => 
+              (a.assetCode && a.assetCode.toUpperCase() === compMatch.assetCode.toUpperCase())
+            );
+            if (matchedAsset) {
+              currentAssetCode = matchedAsset.assetCode;
+            }
+          }
+        }
+
+        if (!matchedAsset) {
+          // หากยังไม่พบข้อมูลใน master แต่มีรหัสที่สแกนมา ให้สร้าง Object จำลองเพื่อให้ผู้ใช้แจ้งซ่อมต่อได้
+          matchedAsset = {
+            assetCode: currentAssetCode,
+            machineName: `เครื่องจักร ${currentAssetCode}`,
+            department: "ไม่ระบุแผนก",
+            location: "หน้างาน",
+            category: "ทั่วไป",
+            machine_group: "-",
+            ranking: "-",
+            image_url: ""
+          };
+        }
+
+        // ดึงชิ้นส่วนย่อยที่ผูกกับเครื่องนี้
+        matchedComponents = rawComponents.filter(c => 
+          (c.assetCode && c.assetCode.toUpperCase() === currentAssetCode.toUpperCase())
+        );
+
+        // 2. Render ข้อมูลเครื่องจักร
+        renderAssetDetails(matchedAsset, matchedComponents);
+
+        // 3. ดึง Tickets ที่เกี่ยวข้องกับเครื่องนี้เพื่อดูประวัติและสถานะงานค้าง
+        fetchAssetTickets(currentAssetCode);
+
+        // แสดง View สำเร็จ
+        document.getElementById("assetFoundView").style.display = "block";
+        document.getElementById("assetNotFoundView").style.display = "none";
+
+      } catch (err) {
+        console.error("Load Machine Error:", err);
+        showNotFound("ไม่สามารถดึงข้อมูลเครื่องจักรได้: " + (err.message || err));
+      } finally {
+        LiffAuth.hideLoading();
+      }
+    }
+
+    /**
+     * Render ข้อมูลเครื่องจักรลงบนหน้าจอ
+     */
+    function renderAssetDetails(asset, components) {
+      const code = asset.assetCode || asset.asset_code || currentAssetCode;
+      const name = asset.machineName || asset.asset_name || "เครื่องจักรทั่วไป";
+      const dept = asset.department || asset.dept || "-";
+      const loc = asset.location || "-";
+      const group = asset.machine_group || asset.category || "-";
+      const rank = asset.ranking ? `Rank ${asset.ranking}` : "-";
+
+      document.getElementById("assetCodeText").textContent = code;
+      document.getElementById("assetNameText").textContent = name;
+      document.getElementById("assetDeptText").textContent = dept;
+      document.getElementById("assetLocText").textContent = loc;
+      document.getElementById("assetGroupText").textContent = group;
+      document.getElementById("assetRankText").textContent = rank;
+
+      // Machine Cover Image
+      const coverBox = document.getElementById("machineCoverBox");
+      if (asset.image_url && asset.image_url.trim()) {
+        coverBox.innerHTML = `<img src="${asset.image_url}" alt="${code}" onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\\'machine-cover-fallback\\'><i class=\\'fa-solid fa-gears\\'></i><span>${code}</span></div>';" />`;
+      } else {
+        coverBox.innerHTML = `
+          <div class="machine-cover-fallback">
+            <i class="fa-solid fa-industry"></i>
+            <span style="font-size: 11px; font-weight: 600;">${code}</span>
+          </div>
+        `;
+      }
+
+      // Configure Action URLs
+      const btnReport = document.getElementById("btnReportRepair");
+      const btnPM = document.getElementById("btnDoPM");
+      const btnHistory = document.getElementById("btnHistory");
+
+      if (btnReport) btnReport.href = `create-ticket.html?asset=${encodeURIComponent(code)}`;
+      if (btnPM) btnPM.href = `technician.html?asset=${encodeURIComponent(code)}&filter=pm`;
+      if (btnHistory) btnHistory.href = `tracking.html?asset=${encodeURIComponent(code)}`;
+
+      // Render Components (ถ้ามี)
+      const compSection = document.getElementById("componentsSection");
+      const compContainer = document.getElementById("componentsListContainer");
+      const compBadge = document.getElementById("componentsCountBadge");
+
+      if (components && components.length > 0) {
+        compSection.style.display = "block";
+        compBadge.textContent = components.length;
+
+        let compHtml = "";
+        components.forEach(c => {
+          const compCode = c.compCode || "-";
+          const compName = c.compName || c.description || compCode;
+          compHtml += `
+            <div class="component-card">
+              <div>
+                <div style="font-size: 12px; font-weight: 700; color: var(--text-main);">
+                  ${compCode}
+                </div>
+                <div style="font-size: 11px; color: var(--text-muted); margin-top: 1px;">
+                  ${compName}
+                </div>
+              </div>
+              <a href="create-ticket.html?asset=${encodeURIComponent(code)}&comp=${encodeURIComponent(compCode)}" class="comp-btn-report" title="แจ้งซ่อมชิ้นส่วนนี้">
+                <i class="fa-solid fa-wrench"></i> แจ้งซ่อมจุดนี้
+              </a>
+            </div>
+          `;
+        });
+        compContainer.innerHTML = compHtml;
+      } else {
+        compSection.style.display = "none";
+      }
+
+      // Set Direct QR Link Display
+      const qrUrl = getCanonicalAssetUrl(code);
+      const qrTextEl = document.getElementById("qrDirectUrlText");
+      if (qrTextEl) qrTextEl.textContent = qrUrl;
+    }
+
+    /**
+     * ดึงประวัติการแจ้งซ่อมของเครื่องนี้
+     */
+    async function fetchAssetTickets(assetCode) {
+      try {
+        const res = await CmmsApi.getTickets("", "");
+        let tickets = [];
+        if (res && res.status === "success" && Array.isArray(res.data)) {
+          tickets = res.data;
+        } else if (Array.isArray(res)) {
+          tickets = res;
+        }
+
+        const upper = assetCode.toUpperCase();
+        assetTickets = tickets.filter(t => {
+          const tCode = (t.assetCode || t.machineName || "").toUpperCase();
+          return tCode === upper || tCode.includes(upper);
+        });
+
+        // 1. ตรวจสอบว่ามีใบงานที่กำลังซ่อมค้างอยู่หรือไม่ (Breakdown / In Progress)
+        const activeTicket = assetTickets.find(t => {
+          const s = (t.status || t.Status || "").toLowerCase();
+          const reqS = (t.requestStatus || "").toLowerCase();
+          return s.includes("prog") || s.includes("กำลัง") || s.includes("ซ่อม") || s.includes("wait") || s.includes("รออะไหล่") || s.includes("pending") || reqS === "pending assignment";
+        });
+
+        const statusPill = document.getElementById("machineStatusPill");
+        const statusText = document.getElementById("machineStatusText");
+        const activeAlert = document.getElementById("activeTicketAlert");
+        const activeDesc = document.getElementById("activeTicketDesc");
+        const activeLink = document.getElementById("activeTicketLink");
+
+        if (activeTicket) {
+          statusPill.className = "machine-status-pill status-breakdown";
+          statusText.textContent = "อยู่ระหว่างซ่อม";
+
+          if (activeAlert && activeDesc) {
+            const ticketNo = activeTicket.ticketNo || activeTicket.requestCode || activeTicket.id || "TICKET";
+            const symptom = activeTicket.symptom || activeTicket.description || "ไม่ระบุอาการ";
+            activeDesc.textContent = `ใบงาน #${ticketNo}: ${symptom}`;
+            activeLink.href = `tracking.html?ticket=${encodeURIComponent(ticketNo)}`;
+            activeAlert.style.display = "flex";
+          }
+        } else {
+          statusPill.className = "machine-status-pill status-operational";
+          statusText.textContent = "พร้อมใช้งาน";
+          if (activeAlert) activeAlert.style.display = "none";
+        }
+
+        // 2. Render ประวัติ 3 รายการล่าสุด
+        renderRecentTickets(assetTickets);
+
+      } catch (e) {
+        console.warn("Could not fetch asset tickets history:", e);
+        const container = document.getElementById("recentTicketsContainer");
+        if (container) {
+          container.innerHTML = `
+            <div style="font-size: 11px; color: var(--text-muted); text-align: center; padding: 10px;">
+              ไม่สามารถดึงข้อมูลประวัติย้อนหลังได้
+            </div>
+          `;
+        }
+      }
+    }
+
+    /**
+     * Render ประวัติงานซ่อมย้อนหลัง
+     */
+    function renderRecentTickets(tickets) {
+      const container = document.getElementById("recentTicketsContainer");
+      if (!container) return;
+
+      if (!tickets || tickets.length === 0) {
+        container.innerHTML = `
+          <div style="font-size: 12px; color: var(--text-muted); text-align: center; padding: 14px; background: white; border: 1px solid var(--border-color); border-radius: var(--radius-md);">
+            <i class="fa-solid fa-check-circle" style="color: #10b981; margin-right: 4px;"></i>
+            ไม่มีประวัติการแจ้งซ่อมค้างสำหรับเครื่องจักรนี้
+          </div>
+        `;
+        return;
+      }
+
+      const topRecent = tickets.slice(0, 3);
+      let html = "";
+
+      topRecent.forEach(t => {
+        const ticketNo = t.ticketNo || t.requestCode || t.id || "TICKET";
+        const symptom = t.symptom || t.description || "-";
+        const date = t.date || t.createdAt || "";
+        const status = t.status || t.Status || "Pending";
+
+        let badgeClass = "badge-pending";
+        const s = status.toLowerCase();
+        if (s.includes("กำลัง") || s.includes("prog")) badgeClass = "badge-progress";
+        else if (s.includes("รอ") && s.includes("อะไหล่")) badgeClass = "badge-waiting";
+        else if (s.includes("เสร็จ") || s.includes("comp") || s.includes("ปิดงาน")) badgeClass = "badge-completed";
+        else if (s.includes("ยกเลิก") || s.includes("reject")) badgeClass = "badge-rejected";
+
+        html += `
+          <div class="ticket-card" style="margin-bottom: 8px;" onclick="window.location.href='tracking.html?ticket=${encodeURIComponent(ticketNo)}'">
+            <div class="ticket-header">
+              <span class="ticket-no">#${ticketNo}</span>
+              <span class="badge ${badgeClass}">${status}</span>
+            </div>
+            <div class="ticket-body" style="padding: 6px 0;">
+              <div style="font-size: 12px; font-weight: 600; color: var(--text-main); line-height: 1.35;">
+                ${symptom}
+              </div>
+            </div>
+            <div class="ticket-footer" style="padding-top: 6px;">
+              <span><i class="fa-regular fa-clock" style="margin-right: 3px;"></i>${date}</span>
+              <span style="color: var(--primary); font-weight: 600;">ดูใบงาน <i class="fa-solid fa-chevron-right" style="font-size: 9px;"></i></span>
+            </div>
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+    }
+
+    /**
+     * คำนวณ Canonical URL สำหรับใช้สร้าง QR Code
+     */
+    function getCanonicalAssetUrl(code) {
+      const LIFF_ID = "2011076529-EKhCiseU";
+      // หากรันใน LINE LIFF สามารถใช้ LIFF URL ได้
+      return `https://liff.line.me/${LIFF_ID}/asset.html?asset=${encodeURIComponent(code)}`;
+    }
+
+    function copyQRLink() {
+      const url = getCanonicalAssetUrl(currentAssetCode);
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url).then(() => {
+          showToast("คัดลอกลิงก์สร้าง QR Code สำเร็จ!");
+        }).catch(() => {
+          prompt("คัดลอกลิงก์สำหรับใส่ใน Google Sheets:", url);
+        });
+      } else {
+        prompt("คัดลอกลิงก์สำหรับใส่ใน Google Sheets:", url);
+      }
+    }
+
+    function shareAssetLink() {
+      const url = getCanonicalAssetUrl(currentAssetCode);
+      const title = `AUT CMMS - เครื่องจักร ${currentAssetCode}`;
+      if (navigator.share) {
+        navigator.share({
+          title: title,
+          text: `ข้อมูลและลิงก์แจ้งซ่อมเครื่องจักร ${currentAssetCode}`,
+          url: url
+        }).catch(() => {});
+      } else {
+        copyQRLink();
+      }
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById("copyToast");
+      const text = document.getElementById("copyToastText");
+      if (!toast) return;
+      if (text) text.textContent = msg;
+      toast.classList.add("show");
+      setTimeout(() => {
+        toast.classList.remove("show");
+      }, 2500);
+    }
+
+    function showNotFound(msg) {
+      document.getElementById("assetFoundView").style.display = "none";
+      const notFoundView = document.getElementById("assetNotFoundView");
+      const msgEl = document.getElementById("assetNotFoundMessage");
+      if (msgEl && msg) msgEl.textContent = msg;
+      notFoundView.style.display = "block";
+    }
+  </script>
+</body>
+
+</html>

@@ -235,6 +235,8 @@
             <i class="fa-solid fa-list-check"></i> ติดตามงาน
           </a>
         </div>
+      </div>
+
       <!-- Scanned Asset Info Banner (แสดงเมื่อส่งค่าจาก QR Code) -->
       <div id="scannedAssetBanner" style="display: none; background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border: 1.5px solid #bfdbfe; border-radius: var(--radius-md); padding: 10px 14px; margin-bottom: 12px; align-items: center; justify-content: space-between; gap: 8px;">
         <div style="display: flex; align-items: center; gap: 10px;">
@@ -802,6 +804,8 @@
           document.getElementById("ticketNo").textContent = ticketNo;
           document.getElementById("successMessage").textContent = resData.message || "ระบบบันทึกข้อมูลเรียบร้อยแล้ว";
           document.getElementById("formCard").style.display = "none";
+          const banner = document.getElementById("scannedAssetBanner");
+          if (banner) banner.style.display = "none";
           document.getElementById("successResult").style.display = "block";
           window.scrollTo({ top: 0, behavior: "smooth" });
         } else {
@@ -830,6 +834,8 @@
       onReqTypeChange("CM");
       const tip = document.getElementById("assetGuidanceTip");
       if (tip) tip.style.display = "none";
+      const banner = document.getElementById("scannedAssetBanner");
+      if (banner) banner.style.display = "none";
       document.getElementById("req-component-list").innerHTML = "";
       document.getElementById("formCard").style.display = "block";
       document.getElementById("successResult").style.display = "none";

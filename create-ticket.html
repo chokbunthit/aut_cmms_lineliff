@@ -503,22 +503,22 @@
         if (assetInput) {
           assetInput.value = assetParam;
           onAssetInput(assetParam);
+        }
 
-          // อัปเดตข้อความบนแบนเนอร์ QR Code
-          const banner = document.getElementById("scannedAssetBanner");
-          const title = document.getElementById("scannedAssetTitle");
-          const hubLink = document.getElementById("scannedAssetHubLink");
-          if (banner && title) {
-            const upper = assetParam.toUpperCase();
-            const matched = rawAssets.find(a => 
-              (a.assetCode && a.assetCode.toUpperCase() === upper) ||
-              (a.asset_code && a.asset_code.toUpperCase() === upper)
-            );
-            const mName = matched ? (matched.machineName || matched.asset_name || "") : "";
-            title.textContent = mName ? `${assetParam} - ${mName}` : assetParam;
-            if (hubLink) hubLink.href = `asset.html?asset=${encodeURIComponent(assetParam)}`;
-            banner.style.display = "flex";
-          }
+        // อัปเดตข้อความบนแบนเนอร์ QR Code
+        const banner = document.getElementById("scannedAssetBanner");
+        const title = document.getElementById("scannedAssetTitle");
+        const hubLink = document.getElementById("scannedAssetHubLink");
+        if (banner && title) {
+          const upper = assetParam.toUpperCase();
+          const matched = rawAssets.find(a => 
+            (a.assetCode && a.assetCode.toUpperCase() === upper) ||
+            (a.asset_code && a.asset_code.toUpperCase() === upper)
+          );
+          const mName = matched ? (matched.machineName || matched.asset_name || "") : "";
+          title.textContent = mName ? `${assetParam} - ${mName}` : assetParam;
+          if (hubLink) hubLink.href = `asset.html?asset=${encodeURIComponent(assetParam)}`;
+          banner.style.display = "flex";
         }
       }
 
@@ -526,9 +526,6 @@
         const compInput = document.getElementById("reqComp");
         if (compInput) {
           compInput.value = compParam;
-          if (typeof onComponentChange === "function") {
-            onComponentChange(compParam);
-          }
         }
       }
 
@@ -610,40 +607,63 @@
 
       if (!val) return;
       val = val.trim();
+      const upperVal = val.toUpperCase();
 
-      // ตรวจสอบว่าผู้ใช้กรอกหรือสแกนเป็นรหัส Component หรือไม่ (เช่น FA-CR001-MT03 หรือ FA-AR001-CC01)
-      const compMatch = rawComponents.find(c => c.compCode && c.compCode.toUpperCase() === val.toUpperCase());
-      if (compMatch) {
-        // หากพบว่าเป็น Component ให้แยก Parent Asset ใส่ช่องเครื่องจักร และใส่รหัสอะไหล่ในช่องชิ้นส่วน
-        const parentCode = compMatch.assetCode;
-        const compCode = compMatch.compCode;
+      // 1. ตรวจสอบก่อนว่าเป็นเครื่องจักรหลักใน rawAssets หรือไม่
+      const matchedDirect = rawAssets.find(a => 
+        (a.assetCode && a.assetCode.toUpperCase() === upperVal) ||
+        (a.asset_code && a.asset_code.toUpperCase() === upperVal)
+      );
 
+      let targetAsset = null;
+
+      if (matchedDirect) {
+        // เป็นเครื่องจักรหลักในระบบแน่นอน -> ไม่ต้องตัด hyphen หรือแปลงเป็น Component
+        targetAsset = matchedDirect;
+        val = matchedDirect.assetCode || matchedDirect.asset_code;
         const assetInput = document.getElementById("reqAsset");
-        const compInput = document.getElementById("reqComp");
-        if (assetInput && assetInput.value !== parentCode) assetInput.value = parentCode;
-        if (compInput && compInput.value !== compCode) compInput.value = compCode;
-
-        val = parentCode;
+        if (assetInput && assetInput.value !== val) {
+          assetInput.value = val;
+        }
       } else {
-        // Fallback: ตรวจสอบโครงสร้าง Hyphen หากไม่มีใน rawComponents แต่เครื่องจักรหลักตรงกับ rawAssets
-        const lastHyphen = val.lastIndexOf("-");
-        if (lastHyphen > 0) {
-          const possibleParent = val.substring(0, lastHyphen);
-          if (rawAssets.some(a => a.assetCode && a.assetCode.toUpperCase() === possibleParent.toUpperCase())) {
-            const assetInput = document.getElementById("reqAsset");
-            const compInput = document.getElementById("reqComp");
-            if (assetInput && assetInput.value !== possibleParent) assetInput.value = possibleParent;
-            if (compInput && !compInput.value) compInput.value = val;
-            val = possibleParent;
-          }
+        // 2. ถ้าไม่ใช่เครื่องจักรหลักใน rawAssets ค่อยตรวจสอบว่าเป็นรหัส Component หรือไม่
+        const compMatch = rawComponents.find(c => 
+          c.compCode && 
+          c.compCode.toUpperCase() === upperVal && 
+          c.assetCode && 
+          c.assetCode.toUpperCase() !== upperVal
+        );
+
+        if (compMatch) {
+          const parentCode = compMatch.assetCode;
+          const compCode = compMatch.compCode;
+
+          const assetInput = document.getElementById("reqAsset");
+          const compInput = document.getElementById("reqComp");
+          if (assetInput && assetInput.value !== parentCode) assetInput.value = parentCode;
+          if (compInput && compInput.value !== compCode) compInput.value = compCode;
+
+          val = parentCode;
+          targetAsset = rawAssets.find(a => 
+            (a.assetCode && a.assetCode.toUpperCase() === parentCode.toUpperCase()) ||
+            (a.asset_code && a.asset_code.toUpperCase() === parentCode.toUpperCase())
+          );
+        } else {
+          // Fallback กรณีเป็นรหัสที่ไม่พบใน master
+          targetAsset = rawAssets.find(a => 
+            (a.assetCode && a.assetCode.toUpperCase() === upperVal) ||
+            (a.asset_code && a.asset_code.toUpperCase() === upperVal)
+          );
         }
       }
 
+      // Populate รายการ Components ใน datalist สำหรับเครื่องนี้ (ตัด dummy row ที่ compCode ตรงกับเครื่องออก)
       const compList = document.getElementById("req-component-list");
       if (compList) {
         compList.innerHTML = "";
-        const filtered = rawComponents.filter(
-          c => c.assetCode === val || (c.compCode && c.compCode.startsWith(val))
+        const filtered = rawComponents.filter(c => 
+          c.assetCode && c.assetCode.toUpperCase() === val.toUpperCase() &&
+          c.compCode && c.compCode.toUpperCase() !== val.toUpperCase()
         );
         filtered.forEach(item => {
           const opt = document.createElement("option");
@@ -653,16 +673,16 @@
         });
       }
 
-      const matched = rawAssets.find(a => a.assetCode === val);
-      if (matched) {
+      // Autofill แผนก และ ตำแหน่ง
+      if (targetAsset) {
         const deptInput = document.getElementById("reqDept");
         const locInput = document.getElementById("reqLoc");
 
-        if (deptInput && (matched.department || matched.dept || matched.Dept)) {
-          deptInput.value = matched.department || matched.dept || matched.Dept;
+        if (deptInput && (targetAsset.department || targetAsset.dept || targetAsset.Dept)) {
+          deptInput.value = targetAsset.department || targetAsset.dept || targetAsset.Dept;
         }
-        if (locInput && (matched.location || matched.Location)) {
-          locInput.value = matched.location || matched.Location;
+        if (locInput && (targetAsset.location || targetAsset.Location)) {
+          locInput.value = targetAsset.location || targetAsset.Location;
         }
       }
     }
@@ -670,11 +690,19 @@
     function onComponentChange(compVal) {
       if (!compVal) return;
       compVal = compVal.trim();
+      const upperComp = compVal.toUpperCase();
 
-      const compMatch = rawComponents.find(c => c.compCode && c.compCode.toUpperCase() === compVal.toUpperCase());
+      const compMatch = rawComponents.find(c => 
+        c.compCode && 
+        c.compCode.toUpperCase() === upperComp &&
+        c.assetCode &&
+        c.assetCode.toUpperCase() !== upperComp
+      );
+
       if (compMatch && compMatch.assetCode) {
         const assetInput = document.getElementById("reqAsset");
-        if (assetInput && (!assetInput.value || assetInput.value.trim().toUpperCase() !== compMatch.assetCode.toUpperCase())) {
+        // ถ้าช่องเครื่องจักรยังว่างอยู่ ให้เติมเครื่องจักรหลักให้อัตโนมัติ
+        if (assetInput && !assetInput.value.trim()) {
           assetInput.value = compMatch.assetCode;
           onAssetInput(compMatch.assetCode);
         }
@@ -766,18 +794,22 @@
         let compCodeVal = document.getElementById("reqComp").value.trim();
 
         // ตรวจสอบขั้นสุดท้ายป้องกัน assetCode สลับกับ componentCode
-        const compMatch = rawComponents.find(c => c.compCode && c.compCode.toUpperCase() === assetCodeVal.toUpperCase());
-        if (compMatch) {
-          if (!compCodeVal) compCodeVal = compMatch.compCode;
-          assetCodeVal = compMatch.assetCode;
-        } else {
-          const lastHyphen = assetCodeVal.lastIndexOf("-");
-          if (lastHyphen > 0) {
-            const possibleParent = assetCodeVal.substring(0, lastHyphen);
-            if (rawAssets.some(a => a.assetCode && a.assetCode.toUpperCase() === possibleParent.toUpperCase())) {
-              if (!compCodeVal) compCodeVal = assetCodeVal;
-              assetCodeVal = possibleParent;
-            }
+        const upperSubmitAsset = assetCodeVal.toUpperCase();
+        const isDirectMachine = rawAssets.some(a => 
+          (a.assetCode && a.assetCode.toUpperCase() === upperSubmitAsset) ||
+          (a.asset_code && a.asset_code.toUpperCase() === upperSubmitAsset)
+        );
+
+        if (!isDirectMachine) {
+          const compMatch = rawComponents.find(c => 
+            c.compCode && 
+            c.compCode.toUpperCase() === upperSubmitAsset && 
+            c.assetCode && 
+            c.assetCode.toUpperCase() !== upperSubmitAsset
+          );
+          if (compMatch) {
+            if (!compCodeVal) compCodeVal = compMatch.compCode;
+            assetCodeVal = compMatch.assetCode;
           }
         }
 

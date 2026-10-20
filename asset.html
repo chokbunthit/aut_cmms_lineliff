@@ -671,15 +671,21 @@
           (a.asset_code && a.asset_code.toUpperCase() === upperCode)
         );
 
-        // หากไม่เจอตรงๆ ลองตรวจว่าเป็นรหัส Component หรือไม่
+        // หากไม่เจอตรงๆ ลองตรวจว่าเป็นรหัส Component หรือไม่ (ต้องไม่ใช่แถวที่ compCode ซ้ำกับ assetCode)
         if (!matchedAsset) {
-          const compMatch = rawComponents.find(c => c.compCode && c.compCode.toUpperCase() === upperCode);
+          const compMatch = rawComponents.find(c => 
+            c.compCode && 
+            c.compCode.toUpperCase() === upperCode &&
+            c.assetCode &&
+            c.assetCode.toUpperCase() !== upperCode
+          );
           if (compMatch && compMatch.assetCode) {
             matchedAsset = rawAssets.find(a => 
-              (a.assetCode && a.assetCode.toUpperCase() === compMatch.assetCode.toUpperCase())
+              (a.assetCode && a.assetCode.toUpperCase() === compMatch.assetCode.toUpperCase()) ||
+              (a.asset_code && a.asset_code.toUpperCase() === compMatch.assetCode.toUpperCase())
             );
             if (matchedAsset) {
-              currentAssetCode = matchedAsset.assetCode;
+              currentAssetCode = matchedAsset.assetCode || matchedAsset.asset_code;
             }
           }
         }
@@ -698,9 +704,10 @@
           };
         }
 
-        // ดึงชิ้นส่วนย่อยที่ผูกกับเครื่องนี้
+        // ดึงชิ้นส่วนย่อยที่ผูกกับเครื่องนี้ (คัดแถวที่ compCode ซ้ำกับรหัสเครื่องออก)
         matchedComponents = rawComponents.filter(c => 
-          (c.assetCode && c.assetCode.toUpperCase() === currentAssetCode.toUpperCase())
+          (c.assetCode && c.assetCode.toUpperCase() === currentAssetCode.toUpperCase()) &&
+          (c.compCode && c.compCode.toUpperCase() !== currentAssetCode.toUpperCase())
         );
 
         // 2. Render ข้อมูลเครื่องจักร

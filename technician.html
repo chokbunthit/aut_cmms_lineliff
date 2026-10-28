@@ -1527,6 +1527,32 @@
     }
 
     /**
+     * ตรวจสอบว่างาน PM อยู่ล่วงหน้าเกิน +2 วันหรือไม่ (diffDays > 2)
+     * หากเกิน +2 วัน จะอนุญาตให้ดูรายละเอียดได้อย่างเดียว ยังไม่สามารถบันทึกหรือปิดงานได้
+     */
+    function getPMDiffDaysFromAny(wo, data = null) {
+      const targetWO = groupedWorkOrders.find(w =>
+        w.woNo === ((wo && (wo.woNo || wo.wo_code)) || (data && data.woCode) || currentActiveWO)
+      );
+      const dueDate = (wo && (wo.dueDate || wo.due_date)) || (targetWO && targetWO.dueDate) || "-";
+      const assignedDate = (wo && (wo.assignedDate || wo.createdDate || wo.workorder_date)) || (targetWO && targetWO.assignedDate) || "-";
+      return getWODiffDays({ dueDate, assignedDate });
+    }
+
+    function isPMViewOnly(wo, data = null) {
+      const targetWO = groupedWorkOrders.find(w =>
+        w.woNo === ((wo && (wo.woNo || wo.wo_code)) || (data && data.woCode) || currentActiveWO)
+      );
+      const checkObj = targetWO || wo || {};
+      const isPM = getWOType(checkObj) === "PM" || (typeof isPMWorkOrder === "function" && isPMWorkOrder(wo, data));
+      if (!isPM) return false;
+      if (!isUnfinished(checkObj)) return false;
+
+      const diff = getPMDiffDaysFromAny(wo, data);
+      return diff > 2;
+    }
+
+    /**
      * ตรวจสอบว่างาน PM อยู่ในช่วงเวลาที่เลือกหรือไม่ (สะสม: ยังไม่เสร็จ + ล่วงหน้าตามที่เลือก)
      */
     function matchesPMHorizon(wo, horizon = pmHorizonFilter) {
@@ -1774,6 +1800,7 @@
         priorityBadge = `<span class="badge" style="background: #ecfdf5; color: #15803d;">ต่ำ</span>`;
       }
 
+      const viewOnlyPM = isPMViewOnly(wo);
       const s = String(wo.status || "").toLowerCase().trim();
       let statusBadge = "";
       if (pendingApproval) {
@@ -1782,6 +1809,8 @@
         statusBadge = `<span class="badge" style="background: #e0e7ff; color: #4338ca; border: 1px solid #c7d2fe;"><i class="fa-solid fa-clipboard-check"></i> รอผู้แจ้งตรวจรับ</span>`;
       } else if (!unfinished) {
         statusBadge = `<span class="badge badge-completed"><i class="fa-solid fa-check"></i> เสร็จสิ้น</span>`;
+      } else if (viewOnlyPM) {
+        statusBadge = `<span class="badge" style="background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1;"><i class="fa-solid fa-lock"></i> ดูอย่างเดียว (เกิน +2 วัน)</span>`;
       } else {
         statusBadge = `<span class="badge badge-progress"><i class="fa-solid fa-clock"></i> กำลังทำ</span>`;
       }
@@ -1832,8 +1861,15 @@
       }
 
       const isFinished = !unfinished;
-      const actionBtnLabel = isFinished ? "ดูรายละเอียดใบงาน" : "เปิดใบงาน / ปิดงาน";
-      const actionBtnIcon = isFinished ? "fa-file-lines" : "fa-folder-open";
+      const actionBtnLabel = isFinished
+        ? "ดูรายละเอียดใบงาน"
+        : (viewOnlyPM ? "ดูแผนงาน (ยังไม่ถึงรอบ)" : "เปิดใบงาน / ปิดงาน");
+      const actionBtnIcon = isFinished
+        ? "fa-file-lines"
+        : (viewOnlyPM ? "fa-eye" : "fa-folder-open");
+      const actionBtnStyle = viewOnlyPM
+        ? "background: #f1f5f9; color: #475569; border-color: #cbd5e1;"
+        : "";
       const pmDueBadgeHtml = renderPMDueBadge(wo);
 
       return `
@@ -1871,7 +1907,7 @@
 
           <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: var(--text-sub); border-top: 1px dashed var(--border-color); padding-top: 8px; margin-top: 6px;">
             <span><i class="fa-regular fa-calendar" style="margin-right: 4px;"></i>กำหนดเสร็จ: ${wo.dueDate || '-'}</span>
-            <button type="button" class="btn-card-action" onclick="openWorkOrderDetail('${wo.woNo}', 'ALL')" title="${actionBtnLabel}">
+            <button type="button" class="btn-card-action" style="${actionBtnStyle}" onclick="openWorkOrderDetail('${wo.woNo}', 'ALL')" title="${actionBtnLabel}">
               <i class="fa-solid ${actionBtnIcon}"></i>
               <span>${actionBtnLabel}</span>
               <i class="fa-solid fa-chevron-right" style="font-size: 9px;"></i>
@@ -2081,13 +2117,18 @@
         }
 
         // Switch Screen State to Detail View
+        const targetWO = groupedWorkOrders.find(w => w.woNo === woNo);
+        const viewOnlyPM = isPMViewOnly(data.wo || targetWO || {}, data);
+
         document.getElementById("taskListView").style.display = "none";
         document.getElementById("detailDrawerContainer").style.display = "block";
         document.getElementById("stickyActionBar").style.display = "flex";
         document.getElementById("appBottomNav").style.display = "none";
         document.getElementById("navBackBtn").style.display = "inline-block";
         document.getElementById("pageTitle").textContent = woNo;
-        document.getElementById("pageSubtitle").textContent = "บันทึกผลการปฏิบัติงาน";
+        document.getElementById("pageSubtitle").textContent = viewOnlyPM
+          ? "ดูรายละเอียดแผนงาน PM (ยังไม่ถึงรอบบันทึก)"
+          : "บันทึกผลการปฏิบัติงาน";
 
         updateStickyActionBar(data.wo || targetWO || {});
         renderDrawerHeader(data);
@@ -2216,6 +2257,9 @@
       const bar = document.getElementById("stickyActionBar");
       if (!bar) return;
       const s = String(wo.status || wo.workorderStatus || "").toLowerCase().trim();
+      const viewOnlyPM = isPMViewOnly(wo, currentDrawerData);
+      const diffDays = getPMDiffDaysFromAny(wo, currentDrawerData);
+
       if (s.includes("pending approval") || s.includes("รอหัวหน้าอนุมัติ") || s.includes("รออนุมัติ")) {
         bar.innerHTML = `
           <button type="button" class="header-icon-btn" onclick="goBackToList()" style="width: 44px; height: 44px;" title="ย้อนกลับ">
@@ -2243,6 +2287,15 @@
             <i class="fa-solid fa-circle-check"></i> ใบงานปิดงานเสร็จสมบูรณ์แล้ว
           </div>
         `;
+      } else if (viewOnlyPM) {
+        bar.innerHTML = `
+          <button type="button" class="header-icon-btn" onclick="goBackToList()" style="width: 44px; height: 44px;" title="ย้อนกลับ">
+            <i class="fa-solid fa-arrow-left"></i>
+          </button>
+          <div style="flex: 1; text-align: center; font-size: 12px; font-weight: 700; color: #475569; background: #f1f5f9; border: 1px solid #cbd5e1; padding: 10px 14px; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+            <i class="fa-solid fa-lock"></i> งาน PM ล่วงหน้า ${diffDays} วัน (ดูได้อย่างเดียว)
+          </div>
+        `;
       } else {
         bar.innerHTML = `
           <button type="button" class="header-icon-btn" onclick="goBackToList()" style="width: 44px; height: 44px;" title="ย้อนกลับ">
@@ -2267,6 +2320,7 @@
 
       const targetWO = groupedWorkOrders.find(w => w.woNo === (wo.woNo || wo.wo_code || currentActiveWO));
       const isPM = isPMWorkOrder(wo, data);
+      const viewOnlyPM = isPMViewOnly(wo, data);
 
       const rawStatus = String((wo && (wo.status || wo.workorderStatus)) || (targetWO && targetWO.status) || "").toLowerCase().trim();
       let statusBadgeHeader = "";
@@ -2276,6 +2330,8 @@
         statusBadgeHeader = `<span class="badge" style="background: #e0e7ff; color: #4338ca; border: 1px solid #c7d2fe; font-size: 11px;"><i class="fa-solid fa-clipboard-check"></i> รอผู้แจ้งตรวจรับ</span>`;
       } else if (rawStatus.includes("done") || rawStatus.includes("เสร็จ") || rawStatus.includes("closed") || rawStatus.includes("comp")) {
         statusBadgeHeader = `<span class="badge badge-completed" style="font-size: 11px;"><i class="fa-solid fa-check"></i> เสร็จสิ้น</span>`;
+      } else if (viewOnlyPM) {
+        statusBadgeHeader = `<span class="badge" style="background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; font-size: 11px;"><i class="fa-solid fa-lock"></i> ดูอย่างเดียว (เกิน +2 วัน)</span>`;
       } else {
         statusBadgeHeader = `<span class="badge badge-progress" style="font-size: 11px;"><i class="fa-solid fa-clock"></i> กำลังดำเนินการ</span>`;
       }
@@ -2346,10 +2402,25 @@
           return;
         }
 
+        const viewOnlyPM = isPMViewOnly(wo, data);
+        const diffDays = getPMDiffDaysFromAny(wo, data);
+        const disabledAttr = viewOnlyPM ? 'disabled style="background: #f1f5f9; color: #64748b; cursor: not-allowed;"' : '';
+
         const isExpandAll = targetKeyOrAction === 'ALL';
         allAccordionsExpanded = isExpandAll;
 
         let html = `
+          ${viewOnlyPM ? `
+            <div style="background: #fff7ed; border: 1px solid #fed7aa; border-left: 4px solid #ea580c; border-radius: 10px; padding: 10px 12px; margin-bottom: 12px; font-size: 12px; color: #9a3412; display: flex; align-items: flex-start; gap: 8px;">
+              <i class="fa-solid fa-lock" style="margin-top: 2px; font-size: 13px; color: #ea580c;"></i>
+              <div>
+                <div style="font-weight: 700;">โหมดดูรายละเอียดเท่านั้น (งาน PM ล่วงหน้าเกิน +2 วัน)</div>
+                <div style="font-size: 11px; color: #c2410c; margin-top: 2px;">
+                  ใบงานนี้มีกำหนดทำในอีก <strong>${diffDays} วัน</strong> จึงเปิดให้ดูขั้นตอนเตรียมความพร้อมล่วงหน้าเท่านั้น ยังไม่สามารถบันทึกผลหรือปิดใบงานได้ (บันทึกได้เมื่อถึงกำหนดหรือล่วงหน้าไม่เกิน 2 วัน)
+                </div>
+              </div>
+            </div>
+          ` : ''}
           <div style="display: flex; align-items: center; justify-content: space-between; margin: 16px 0 10px;">
             <span style="font-size: 13px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 6px;">
               <i class="fa-solid fa-list-check" style="color: #0891b2;"></i>
@@ -2405,7 +2476,7 @@
                 </div>
                 <div class="accordion-header-right">
                   <span id="badgeTask_${compKey}" class="${isDone ? 'badge-status-done' : 'badge-status-progress'}">
-                    ${isDone ? '<i class="fa-solid fa-check"></i> เสร็จสิ้น' : 'In Progress'}
+                    ${isDone ? '<i class="fa-solid fa-check"></i> เสร็จสิ้น' : (viewOnlyPM ? '<i class="fa-solid fa-eye"></i> ดูอย่างเดียว' : 'In Progress')}
                   </span>
                 </div>
               </div>
@@ -2436,11 +2507,11 @@
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
                   <div class="form-group" style="margin-bottom: 0;">
                     <label class="form-label">สาเหตุของปัญหา (Root Cause)</label>
-                    <input type="text" id="rc_${compKey}" class="form-input" placeholder="--" value="${escapeHtml(comp.root_cause || '')}" />
+                    <input type="text" id="rc_${compKey}" class="form-input" placeholder="--" value="${escapeHtml(comp.root_cause || '')}" ${disabledAttr} />
                   </div>
                   <div class="form-group" style="margin-bottom: 0;">
                     <label class="form-label">วิธีการแก้ไข / งานที่ทำ (Action Taken)</label>
-                    <input type="text" id="at_${compKey}" class="form-input" placeholder="--" value="${escapeHtml(comp.action_taken || '')}" />
+                    <input type="text" id="at_${compKey}" class="form-input" placeholder="--" value="${escapeHtml(comp.action_taken || '')}" ${disabledAttr} />
                   </div>
                 </div>
 
@@ -2448,15 +2519,15 @@
                 <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 12px;">
                   <div class="form-group" style="margin-bottom: 0;">
                     <label class="form-label">วันเวลาเริ่ม (Start DateTime)</label>
-                    <input type="datetime-local" id="sd_${compKey}" class="form-input" value="${formatDateTimeLocal(comp.start_date)}" onchange="calcWorkingTime('${compKey}')" />
+                    <input type="datetime-local" id="sd_${compKey}" class="form-input" value="${formatDateTimeLocal(comp.start_date)}" onchange="calcWorkingTime('${compKey}')" ${disabledAttr} />
                   </div>
                   <div class="form-group" style="margin-bottom: 0;">
                     <label class="form-label">วันเวลาเสร็จ (End DateTime)</label>
-                    <input type="datetime-local" id="ed_${compKey}" class="form-input" value="${formatDateTimeLocal(comp.end_date)}" onchange="calcWorkingTime('${compKey}')" />
+                    <input type="datetime-local" id="ed_${compKey}" class="form-input" value="${formatDateTimeLocal(comp.end_date)}" onchange="calcWorkingTime('${compKey}')" ${disabledAttr} />
                   </div>
                   <div class="form-group" style="margin-bottom: 0;">
                     <label class="form-label">Working Time (hrs)</label>
-                    <input type="number" step="0.1" id="wt_${compKey}" class="form-input" placeholder="ชม." value="${comp.working_time || ''}" />
+                    <input type="number" step="0.1" id="wt_${compKey}" class="form-input" placeholder="ชม." value="${comp.working_time || ''}" ${disabledAttr} />
                   </div>
                 </div>
 
@@ -2464,11 +2535,11 @@
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
                   <div class="form-group" style="margin-bottom: 0;">
                     <label class="form-label">Down Time (hrs)</label>
-                    <input type="number" step="0.1" id="dt_${compKey}" class="form-input" placeholder="ชม." value="${comp.down_time || ''}" />
+                    <input type="number" step="0.1" id="dt_${compKey}" class="form-input" placeholder="ชม." value="${comp.down_time || ''}" ${disabledAttr} />
                   </div>
                   <div class="form-group" style="margin-bottom: 0;">
                     <label class="form-label">ค่าที่วัดได้ (Measured Value)</label>
-                    <input type="text" id="mv_${compKey}" class="form-input" placeholder="--" value="${escapeHtml(comp.measured_value || '')}" />
+                    <input type="text" id="mv_${compKey}" class="form-input" placeholder="--" value="${escapeHtml(comp.measured_value || '')}" ${disabledAttr} />
                   </div>
                 </div>
 
@@ -2477,15 +2548,15 @@
                   <!-- Before -->
                   <div>
                     <label class="form-label">ภาพก่อนทำ (Image Before)</label>
-                    <input type="file" id="cam_before_${compKey}" accept="image/*" capture="environment" style="display: none;" onchange="handleImageSelected(this, 'before_${compKey}')" />
-                    <div class="photo-box ${comp.image_before ? 'has-image' : ''}" id="box_before_${compKey}" onclick="triggerCamera('cam_before_${compKey}')" style="min-height: 80px;">
+                    <input type="file" id="cam_before_${compKey}" accept="image/*" capture="environment" style="display: none;" onchange="handleImageSelected(this, 'before_${compKey}')" ${viewOnlyPM ? 'disabled' : ''} />
+                    <div class="photo-box ${comp.image_before ? 'has-image' : ''}" id="box_before_${compKey}" ${viewOnlyPM ? 'style="min-height: 80px; cursor: not-allowed; opacity: 0.65;"' : `onclick="triggerCamera('cam_before_${compKey}')" style="min-height: 80px;"`}>
                       ${comp.image_before ? `
                         <img src="${comp.image_before}" class="photo-preview-img" alt="Before Photo" />
-                        <button type="button" class="photo-remove-btn" onclick="event.stopPropagation(); removePhoto('before_${compKey}')"><i class="fa-solid fa-xmark"></i></button>
+                        ${viewOnlyPM ? '' : `<button type="button" class="photo-remove-btn" onclick="event.stopPropagation(); removePhoto('before_${compKey}')"><i class="fa-solid fa-xmark"></i></button>`}
                       ` : `
                         <div style="display: flex; align-items: center; gap: 6px; color: #64748b; font-size: 11.5px; font-weight: 600;">
-                          <i class="fa-solid fa-camera" style="font-size: 16px; color: #2563eb;"></i>
-                          <span>เลือกไฟล์ / ถ่ายรูป</span>
+                          <i class="fa-solid ${viewOnlyPM ? 'fa-lock' : 'fa-camera'}" style="font-size: 16px; color: ${viewOnlyPM ? '#94a3b8' : '#2563eb'};"></i>
+                          <span>${viewOnlyPM ? 'ยังไม่เปิดให้ถ่ายรูป' : 'เลือกไฟล์ / ถ่ายรูป'}</span>
                         </div>
                       `}
                     </div>
@@ -2493,15 +2564,15 @@
                   <!-- After -->
                   <div>
                     <label class="form-label">ภายหลังทำ (Image Result)</label>
-                    <input type="file" id="cam_after_${compKey}" accept="image/*" capture="environment" style="display: none;" onchange="handleImageSelected(this, 'after_${compKey}')" />
-                    <div class="photo-box ${comp.image_result ? 'has-image' : ''}" id="box_after_${compKey}" onclick="triggerCamera('cam_after_${compKey}')" style="min-height: 80px;">
+                    <input type="file" id="cam_after_${compKey}" accept="image/*" capture="environment" style="display: none;" onchange="handleImageSelected(this, 'after_${compKey}')" ${viewOnlyPM ? 'disabled' : ''} />
+                    <div class="photo-box ${comp.image_result ? 'has-image' : ''}" id="box_after_${compKey}" ${viewOnlyPM ? 'style="min-height: 80px; cursor: not-allowed; opacity: 0.65;"' : `onclick="triggerCamera('cam_after_${compKey}')" style="min-height: 80px;"`}>
                       ${comp.image_result ? `
                         <img src="${comp.image_result}" class="photo-preview-img" alt="Result Photo" />
-                        <button type="button" class="photo-remove-btn" onclick="event.stopPropagation(); removePhoto('after_${compKey}')"><i class="fa-solid fa-xmark"></i></button>
+                        ${viewOnlyPM ? '' : `<button type="button" class="photo-remove-btn" onclick="event.stopPropagation(); removePhoto('after_${compKey}')"><i class="fa-solid fa-xmark"></i></button>`}
                       ` : `
                         <div style="display: flex; align-items: center; gap: 6px; color: #64748b; font-size: 11.5px; font-weight: 600;">
-                          <i class="fa-solid fa-camera" style="font-size: 16px; color: #059669;"></i>
-                          <span>เลือกไฟล์ / ถ่ายรูป</span>
+                          <i class="fa-solid ${viewOnlyPM ? 'fa-lock' : 'fa-camera'}" style="font-size: 16px; color: ${viewOnlyPM ? '#94a3b8' : '#059669'};"></i>
+                          <span>${viewOnlyPM ? 'ยังไม่เปิดให้ถ่ายรูป' : 'เลือกไฟล์ / ถ่ายรูป'}</span>
                         </div>
                       `}
                     </div>
@@ -2510,9 +2581,15 @@
 
                 <!-- 6. Row 5: Save Component Result Button -->
                 <div style="display: flex; justify-content: flex-end; margin-top: 14px;">
-                  <button type="button" class="btn-save-comp" onclick="saveSubTask('${compKey}', '${comp.task_no || ''}', '${comp.equipment_code || comp.component_code || ''}')">
-                    <i class="fa-solid fa-floppy-disk"></i> บันทึก
-                  </button>
+                  ${viewOnlyPM ? `
+                    <span style="font-size: 11.5px; color: #64748b; background: #f1f5f9; border: 1px solid #cbd5e1; padding: 6px 12px; border-radius: 8px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
+                      <i class="fa-solid fa-lock"></i> ยังไม่สามารถบันทึกได้ (ล่วงหน้าเกิน +2 วัน)
+                    </span>
+                  ` : `
+                    <button type="button" class="btn-save-comp" onclick="saveSubTask('${compKey}', '${comp.task_no || ''}', '${comp.equipment_code || comp.component_code || ''}')">
+                      <i class="fa-solid fa-floppy-disk"></i> บันทึก
+                    </button>
+                  `}
                 </div>
               </div>
             </div>
@@ -3200,6 +3277,12 @@
      * =========================================================
      */
     async function saveSubTask(safeKey, taskNo, equipmentCode) {
+      const wo = (currentDrawerData && currentDrawerData.wo) || {};
+      if (isPMViewOnly(wo, currentDrawerData)) {
+        alert("⚠️ งาน PM ที่ล่วงหน้ามากกว่า +2 วัน สามารถดูรายละเอียดได้อย่างเดียว ยังไม่สามารถบันทึกการทำงานได้ครับ");
+        return;
+      }
+
       const rc = document.getElementById(`rc_${safeKey}`)?.value || "";
       const at = document.getElementById(`at_${safeKey}`)?.value || "";
       const sd = document.getElementById(`sd_${safeKey}`)?.value || "";
@@ -3270,6 +3353,10 @@
      */
     function openCloseModal() {
       const wo = (currentDrawerData && currentDrawerData.wo) || {};
+      if (isPMViewOnly(wo, currentDrawerData)) {
+        alert("⚠️ งาน PM ที่ล่วงหน้ามากกว่า +2 วัน สามารถดูรายละเอียดได้อย่างเดียว ยังไม่สามารถปิดใบงานได้ครับ");
+        return;
+      }
       const isBM = isBMWorkOrder(wo, currentDrawerData);
 
       if (isBM) {

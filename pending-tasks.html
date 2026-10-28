@@ -848,6 +848,27 @@
             </div>
           </div>
 
+          <!-- Assignee Search Input -->
+          <div style="position: relative; margin-bottom: 8px;">
+            <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font-size: 11px; color: var(--text-muted); pointer-events: none;"></i>
+            <input 
+              type="text" 
+              id="modalAssigneeSearch" 
+              placeholder="ค้นหาชื่อช่าง, ทักษะ หรือ ID..." 
+              oninput="onAssigneeSearchInput(this.value)"
+              style="width: 100%; box-sizing: border-box; padding: 7px 28px 7px 28px; font-size: 11.5px; border: 1px solid var(--border-color); border-radius: var(--radius-sm); font-family: inherit; background: #f8fafc; outline: none; transition: border-color 0.15s, background 0.15s;"
+              onfocus="this.style.borderColor='var(--primary)'; this.style.background='#ffffff';"
+              onblur="this.style.borderColor='var(--border-color)'; this.style.background='#f8fafc';"
+            />
+            <button 
+              type="button" 
+              id="btnClearAssigneeSearch" 
+              onclick="clearAssigneeSearch()" 
+              style="display: none; position: absolute; right: 6px; top: 50%; transform: translateY(-50%); border: none; background: transparent; color: var(--text-muted); cursor: pointer; padding: 2px 6px; font-size: 12px;">
+              <i class="fa-solid fa-circle-xmark"></i>
+            </button>
+          </div>
+
           <!-- Checklist -->
           <div id="assigneeChecklist" style="border: 1px solid var(--border-color); border-radius: var(--radius-md); max-height: 180px; overflow-y: auto;">
             <!-- Rendered by JS -->
@@ -907,6 +928,8 @@
     let activeFilter = 'ALL';
     let currentAssigneeType = 'INTERNAL';
     let cachedAssignees = { technicians: [], vendors: [] };
+    let assigneeSearchQuery = '';
+    let selectedAssignees = new Map(); // name -> id
     let activeRequestCode = null;
     let activeApprovalWo = null;
     let currentManager = null;
@@ -1753,6 +1776,15 @@
       selectDueDay(1, document.querySelector('.due-day-btn'));
       document.getElementById('assignModal').style.display = 'flex';
 
+      // Reset selection state & search
+      selectedAssignees.clear();
+      assigneeSearchQuery = '';
+      const searchInput = document.getElementById('modalAssigneeSearch');
+      if (searchInput) searchInput.value = '';
+      const clearBtn = document.getElementById('btnClearAssigneeSearch');
+      if (clearBtn) clearBtn.style.display = 'none';
+
+      switchAssigneeCategory('INTERNAL');
       loadAssignees();
       await loadMachineMasterData();
       if (curAsset) onModalAssetInput(curAsset);
@@ -1762,20 +1794,24 @@
     function closeAssignModal() {
       document.getElementById('assignModal').style.display = 'none';
       activeRequestCode = null;
+      selectedAssignees.clear();
+      assigneeSearchQuery = '';
     }
 
     function switchAssigneeCategory(type) {
-      currentAssigneeType = type;
+      currentAssigneeType = (type === 'VENDOR' || type === 'EXTERNAL') ? 'EXTERNAL' : 'INTERNAL';
       const btnInt = document.getElementById('btnToggleInternal');
       const btnVen = document.getElementById('btnToggleVendor');
+      const searchInput = document.getElementById('modalAssigneeSearch');
 
-      if (type === 'INTERNAL') {
+      if (currentAssigneeType === 'INTERNAL') {
         btnInt.style.background = '#ffffff';
         btnInt.style.fontWeight = '700';
         btnInt.style.color = 'var(--text-main)';
         btnVen.style.background = 'transparent';
         btnVen.style.fontWeight = '500';
         btnVen.style.color = 'var(--text-muted)';
+        if (searchInput) searchInput.placeholder = 'ค้นหาชื่อช่าง, ทักษะ หรือ ID...';
       } else {
         btnVen.style.background = '#ffffff';
         btnVen.style.fontWeight = '700';
@@ -1783,13 +1819,54 @@
         btnInt.style.background = 'transparent';
         btnInt.style.fontWeight = '500';
         btnInt.style.color = 'var(--text-muted)';
+        if (searchInput) searchInput.placeholder = 'ค้นหาผู้รับเหมา, บริการ หรือผู้ติดต่อ...';
+      }
+
+      // เมื่อสลับประเภท ให้ล้างการเลือกเพื่อไม่ให้ช่างและผู้รับเหมาปนกันในใบสั่งงานเดียว
+      selectedAssignees.clear();
+      clearAssigneeSearch();
+      renderAssigneeList();
+    }
+
+    function onAssigneeSearchInput(val) {
+      assigneeSearchQuery = (val || '').trim();
+      const clearBtn = document.getElementById('btnClearAssigneeSearch');
+      if (clearBtn) {
+        clearBtn.style.display = assigneeSearchQuery ? 'block' : 'none';
       }
       renderAssigneeList();
     }
 
+    function clearAssigneeSearch() {
+      assigneeSearchQuery = '';
+      const searchInput = document.getElementById('modalAssigneeSearch');
+      if (searchInput) searchInput.value = '';
+      const clearBtn = document.getElementById('btnClearAssigneeSearch');
+      if (clearBtn) clearBtn.style.display = 'none';
+      renderAssigneeList();
+    }
+
+    function onAssigneeCheckboxChange(cb) {
+      if (!cb) return;
+      const name = cb.value;
+      const id = cb.getAttribute('data-id') || '';
+      if (cb.checked) {
+        selectedAssignees.set(name, id);
+        if (cb.closest('.assignee-item')) {
+          cb.closest('.assignee-item').style.background = '#eff6ff';
+        }
+      } else {
+        selectedAssignees.delete(name);
+        if (cb.closest('.assignee-item')) {
+          cb.closest('.assignee-item').style.background = '';
+        }
+      }
+      updateModalAssigneeSummary();
+    }
+
     async function loadAssignees() {
       const container = document.getElementById('assigneeChecklist');
-      container.innerHTML = '<div style="padding: 20px; text-align: center; font-size: 11.5px; color: var(--text-muted);"><i class="fa-solid fa-circle-notch fa-spin" style="color: var(--primary); margin-right: 4px;"></i> กำลังโหลดรายชื่อช่าง...</div>';
+      container.innerHTML = '<div style="padding: 20px; text-align: center; font-size: 11.5px; color: var(--text-muted);"><i class="fa-solid fa-circle-notch fa-spin" style="color: var(--primary); margin-right: 4px;"></i> กำลังโหลดรายชื่อ...</div>';
 
       try {
         const data = await CmmsApi.getAssigneeMasterData();
@@ -1802,11 +1879,33 @@
 
     function renderAssigneeList() {
       const container = document.getElementById('assigneeChecklist');
-      const list = currentAssigneeType === 'INTERNAL' ? cachedAssignees.technicians : cachedAssignees.vendors;
-      const emptyMsg = currentAssigneeType === 'INTERNAL' ? 'ไม่พบรายชื่อช่างในระบบ' : 'ไม่พบรายชื่อผู้รับเหมา';
+      const isVendor = currentAssigneeType === 'EXTERNAL' || currentAssigneeType === 'VENDOR';
+      let list = isVendor ? (cachedAssignees.vendors || []) : (cachedAssignees.technicians || []);
+      const emptyMsg = isVendor ? 'ไม่พบรายชื่อผู้รับเหมา' : 'ไม่พบรายชื่อช่างในระบบ';
+
+      // ค้นหาตาม search query
+      const q = (assigneeSearchQuery || '').toLowerCase();
+      if (q) {
+        list = list.filter(item => {
+          const name = String(item.name || '').toLowerCase();
+          const id = String(item.user_id || item.vendor_id || item.id || '').toLowerCase();
+          const skill = String(item.skill || item.service_type || '').toLowerCase();
+          const contact = String(item.contact || '').toLowerCase();
+          return name.includes(q) || id.includes(q) || skill.includes(q) || contact.includes(q);
+        });
+      }
 
       if (!list || list.length === 0) {
-        container.innerHTML = `<div style="padding: 20px; text-align: center; font-size: 11.5px; color: var(--text-muted);">${emptyMsg}</div>`;
+        if (q) {
+          container.innerHTML = `
+            <div style="padding: 24px 16px; text-align: center; font-size: 11.5px; color: var(--text-muted);">
+              <i class="fa-solid fa-magnifying-glass" style="font-size: 16px; color: #cbd5e1; margin-bottom: 6px; display: block;"></i>
+              ไม่พบรายชื่อที่ตรงกับ "<strong>${escapeHtml(q)}</strong>"
+            </div>`;
+        } else {
+          container.innerHTML = `<div style="padding: 20px; text-align: center; font-size: 11.5px; color: var(--text-muted);">${emptyMsg}</div>`;
+        }
+        updateModalAssigneeSummary();
         return;
       }
 
@@ -1822,12 +1921,17 @@
           badgeText = count + ' งาน';
         }
 
+        const isChecked = selectedAssignees.has(item.name);
+        const subInfo = isVendor
+          ? (item.contact ? `ผู้ติดต่อ: ${escapeHtml(item.contact)}` : (item.service_type ? `บริการ: ${escapeHtml(item.service_type)}` : `ID: ${escapeHtml(item.user_id || item.vendor_id || '-')}`))
+          : (item.skill ? `ทักษะ: ${escapeHtml(item.skill)}` : `ID: ${escapeHtml(item.user_id || '-')}`);
+
         return `
-          <label class="assignee-item">
-            <input type="checkbox" name="modalAssigneeCb" value="${escapeHtml(item.name)}" data-id="${escapeHtml(item.user_id)}" onchange="updateModalAssigneeSummary()" style="accent-color: var(--primary); width: 16px; height: 16px;" />
+          <label class="assignee-item" style="${isChecked ? 'background: #eff6ff;' : ''}">
+            <input type="checkbox" name="modalAssigneeCb" value="${escapeHtml(item.name)}" data-id="${escapeHtml(item.user_id || item.vendor_id || '')}" onchange="onAssigneeCheckboxChange(this)" ${isChecked ? 'checked' : ''} style="accent-color: var(--primary); width: 16px; height: 16px;" />
             <div style="flex: 1; min-width: 0;">
               <div style="font-size: 12.5px; font-weight: 700; color: var(--text-main);">${escapeHtml(item.name)}</div>
-              <div style="font-size: 10.5px; color: var(--text-muted);">ID: ${escapeHtml(item.user_id)}</div>
+              <div style="font-size: 10.5px; color: var(--text-muted);">${subInfo}</div>
             </div>
             <span class="workload-badge ${badgeClass}">${badgeText}</span>
           </label>`;
@@ -1837,13 +1941,12 @@
     }
 
     function updateModalAssigneeSummary() {
-      const checked = document.querySelectorAll('input[name="modalAssigneeCb"]:checked');
       const box = document.getElementById('assigneeSummaryBox');
       const text = document.getElementById('assigneeSummaryText');
 
-      if (checked.length > 0) {
-        const names = Array.from(checked).map(cb => cb.value).join(', ');
-        text.innerText = `เลือกแล้ว ${checked.length} ราย: ${names}`;
+      if (selectedAssignees.size > 0) {
+        const names = Array.from(selectedAssignees.keys()).join(', ');
+        text.innerText = `เลือกแล้ว ${selectedAssignees.size} ราย: ${names}`;
         box.style.display = 'block';
       } else {
         box.style.display = 'none';
@@ -1859,9 +1962,16 @@
     async function submitModalAssignment() {
       if (!activeRequestCode) return;
 
-      const checked = document.querySelectorAll('input[name="modalAssigneeCb"]:checked');
-      const assignees = Array.from(checked).map(cb => cb.value);
-      const assigneeIds = Array.from(checked).map(cb => cb.getAttribute('data-id') || '');
+      let assignees = Array.from(selectedAssignees.keys());
+      let assigneeIds = Array.from(selectedAssignees.values());
+
+      // Fallback จาก DOM checkbox เผื่อกรณีพิเศษ
+      if (assignees.length === 0) {
+        const checked = document.querySelectorAll('input[name="modalAssigneeCb"]:checked');
+        assignees = Array.from(checked).map(cb => cb.value);
+        assigneeIds = Array.from(checked).map(cb => cb.getAttribute('data-id') || '');
+      }
+
       const woType = document.querySelector('input[name="modalWoType"]:checked')?.value || 'CM';
       const dueDays = parseInt(document.getElementById('modalDueDaysVal').value || 1, 10);
       const assetCode = (document.getElementById('modalAssetCode').value || '').trim();
@@ -1888,7 +1998,7 @@
         componentCode: componentCode || null,
         assignees: assignees,
         assigneeIds: assigneeIds,
-        assigneeType: currentAssigneeType,
+        assigneeType: (currentAssigneeType === 'VENDOR' || currentAssigneeType === 'EXTERNAL') ? 'EXTERNAL' : 'INTERNAL',
         dueDays: dueDays,
         workorderType: woType,
         assignedBy: (currentManager && (currentManager.displayName || currentManager.name)) || 'Manager'

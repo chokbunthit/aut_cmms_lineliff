@@ -541,15 +541,73 @@
       }
     }
 
+    // Helper ตรวจสอบว่าเป็นรหัสชิ้นส่วนย่อย (Component Code ต้องมี >= 3 ส่วน เช่น FA-AR001-CC01)
+    // รหัสเครื่องจักรหลักจะมี 2 ส่วน (เช่น FA-AR001, MC-OV001) ห้ามตัดเหลือแค่หมวดหมู่ (เช่น FA, MC) เด็ดขาด
+    function isSubComponentCode(code) {
+      if (!code) return false;
+      const parts = String(code).trim().split("-").filter(Boolean);
+      return parts.length >= 3;
+    }
+
+    function extractParentAssetCode(code) {
+      if (!code) return "";
+      const clean = String(code).trim();
+      const parts = clean.split("-").filter(Boolean);
+      if (parts.length >= 3) {
+        return `${parts[0]}-${parts[1]}`;
+      }
+      return clean;
+    }
+
     async function loadMachineData() {
       try {
         const json = await CmmsApi.getMachines();
 
         if (json && json.status === "success") {
-          rawAssets = json.data?.assets || [];
-          rawComponents = json.data?.components || [];
+          const fetchedAssets = json.data?.assets || [];
+          const fetchedComponents = json.data?.components || [];
           rawDepartments = json.data?.departments || [];
           rawLocations = json.data?.locations || [];
+
+          const assetMap = new Map();
+          fetchedAssets.forEach(a => {
+            const code = String(a.assetCode || a.asset_code || "").trim();
+            if (code) assetMap.set(code.toUpperCase(), a);
+          });
+
+          // ป้องกันกรณี API ส่งรหัสเครื่องจักรหลัก (2 ส่วน เช่น FA-AR001) ติดมาใน components
+          const validComponents = [];
+          fetchedComponents.forEach(c => {
+            const compCode = String(c.compCode || c.component_code || "").trim();
+            if (!compCode) return;
+
+            if (!isSubComponentCode(compCode)) {
+              // เป็นรหัสเครื่องจักรหลัก (เช่น FA-AR001) -> ย้ายเข้า rawAssets หากยังไม่มี
+              const upper = compCode.toUpperCase();
+              if (!assetMap.has(upper)) {
+                assetMap.set(upper, {
+                  assetCode: compCode,
+                  asset_code: compCode,
+                  machineName: c.compName || c.component_name || compCode,
+                  asset_name: c.compName || c.component_name || compCode,
+                  department: "",
+                  location: ""
+                });
+              }
+            } else {
+              const parentCode = extractParentAssetCode(compCode);
+              validComponents.push({
+                ...c,
+                compCode: compCode,
+                component_code: compCode,
+                assetCode: parentCode,
+                parent_asset_code: parentCode
+              });
+            }
+          });
+
+          rawAssets = Array.from(assetMap.values());
+          rawComponents = validComponents;
 
           renderAssetDatalist();
           renderDepartmentDatalist();
@@ -609,7 +667,7 @@
       val = val.trim();
       const upperVal = val.toUpperCase();
 
-      // 1. ตรวจสอบก่อนว่าเป็นเครื่องจักรหลักใน rawAssets หรือไม่
+      // 1. ตรวจสอบก่อนว่าเป็นเครื่องจักรหลักใน rawAssets หรือเป็นรหัส 2 ส่วน (เช่น FA-AR001)
       const matchedDirect = rawAssets.find(a => 
         (a.assetCode && a.assetCode.toUpperCase() === upperVal) ||
         (a.asset_code && a.asset_code.toUpperCase() === upperVal)
@@ -617,27 +675,30 @@
 
       let targetAsset = null;
 
-      if (matchedDirect) {
-        // เป็นเครื่องจักรหลักในระบบแน่นอน -> ไม่ต้องตัด hyphen หรือแปลงเป็น Component
-        targetAsset = matchedDirect;
-        val = matchedDirect.assetCode || matchedDirect.asset_code;
-        const assetInput = document.getElementById("reqAsset");
-        if (assetInput && assetInput.value !== val) {
-          assetInput.value = val;
+      if (matchedDirect || !isSubComponentCode(val)) {
+        // เป็นเครื่องจักรหลัก (เช่น FA-AR001, MC-OV001) -> คงไว้ที่ช่อง Asset Code ห้ามย้ายไป Component เด็ดขาด
+        targetAsset = matchedDirect || null;
+        if (matchedDirect) {
+          val = matchedDirect.assetCode || matchedDirect.asset_code;
+          const assetInput = document.getElementById("reqAsset");
+          if (assetInput && assetInput.value !== val) {
+            assetInput.value = val;
+          }
         }
       } else {
-        // 2. ถ้าไม่ใช่เครื่องจักรหลักใน rawAssets ค่อยตรวจสอบว่าเป็นรหัส Component หรือไม่
+        // 2. กรณีสแกนหรือพิมพ์รหัสชิ้นส่วนย่อย (>= 3 ส่วน เช่น FA-AR001-CC01) ลงในช่อง Asset Code
         const compMatch = rawComponents.find(c => 
           c.compCode && 
           c.compCode.toUpperCase() === upperVal && 
-          c.assetCode && 
-          c.assetCode.toUpperCase() !== upperVal
+          isSubComponentCode(c.compCode)
         );
 
-        if (compMatch) {
-          const parentCode = compMatch.assetCode;
-          const compCode = compMatch.compCode;
+        const parentCode = (compMatch && compMatch.assetCode && compMatch.assetCode.includes("-"))
+          ? compMatch.assetCode
+          : extractParentAssetCode(val);
+        const compCode = compMatch ? compMatch.compCode : val;
 
+        if (parentCode && parentCode.includes("-")) {
           const assetInput = document.getElementById("reqAsset");
           const compInput = document.getElementById("reqComp");
           if (assetInput && assetInput.value !== parentCode) assetInput.value = parentCode;
@@ -648,22 +709,17 @@
             (a.assetCode && a.assetCode.toUpperCase() === parentCode.toUpperCase()) ||
             (a.asset_code && a.asset_code.toUpperCase() === parentCode.toUpperCase())
           );
-        } else {
-          // Fallback กรณีเป็นรหัสที่ไม่พบใน master
-          targetAsset = rawAssets.find(a => 
-            (a.assetCode && a.assetCode.toUpperCase() === upperVal) ||
-            (a.asset_code && a.asset_code.toUpperCase() === upperVal)
-          );
         }
       }
 
-      // Populate รายการ Components ใน datalist สำหรับเครื่องนี้ (ตัด dummy row ที่ compCode ตรงกับเครื่องออก)
+      // Populate รายการ Components ใน datalist สำหรับเครื่องนี้ (แสดงเฉพาะ Component ย่อย >= 3 ส่วน)
       const compList = document.getElementById("req-component-list");
       if (compList) {
         compList.innerHTML = "";
         const filtered = rawComponents.filter(c => 
           c.assetCode && c.assetCode.toUpperCase() === val.toUpperCase() &&
-          c.compCode && c.compCode.toUpperCase() !== val.toUpperCase()
+          c.compCode && c.compCode.toUpperCase() !== val.toUpperCase() &&
+          isSubComponentCode(c.compCode)
         );
         filtered.forEach(item => {
           const opt = document.createElement("option");
@@ -692,19 +748,36 @@
       compVal = compVal.trim();
       const upperComp = compVal.toUpperCase();
 
+      // ถ้าระบุรหัสเครื่องจักรหลัก (2 ส่วน เช่น FA-AR001) ในช่อง Component ให้ย้ายไปช่อง Asset Code
+      if (!isSubComponentCode(compVal) && compVal.includes("-")) {
+        const assetInput = document.getElementById("reqAsset");
+        const compInput = document.getElementById("reqComp");
+        if (assetInput && (!assetInput.value.trim() || !assetInput.value.includes("-"))) {
+          assetInput.value = compVal;
+          if (compInput) compInput.value = "";
+          onAssetInput(compVal);
+          return;
+        }
+      }
+
       const compMatch = rawComponents.find(c => 
         c.compCode && 
         c.compCode.toUpperCase() === upperComp &&
         c.assetCode &&
+        c.assetCode.includes("-") &&
         c.assetCode.toUpperCase() !== upperComp
       );
 
-      if (compMatch && compMatch.assetCode) {
+      const parentCode = (compMatch && compMatch.assetCode)
+        ? compMatch.assetCode
+        : (isSubComponentCode(compVal) ? extractParentAssetCode(compVal) : "");
+
+      if (parentCode && parentCode.includes("-")) {
         const assetInput = document.getElementById("reqAsset");
-        // ถ้าช่องเครื่องจักรยังว่างอยู่ ให้เติมเครื่องจักรหลักให้อัตโนมัติ
-        if (assetInput && !assetInput.value.trim()) {
-          assetInput.value = compMatch.assetCode;
-          onAssetInput(compMatch.assetCode);
+        // ถ้าช่องเครื่องจักรยังว่างอยู่ หรือมีแค่หมวดหมู่ (เช่น FA, MC) ให้เติมเครื่องจักรหลักให้อัตโนมัติ
+        if (assetInput && (!assetInput.value.trim() || !assetInput.value.includes("-"))) {
+          assetInput.value = parentCode;
+          onAssetInput(parentCode);
         }
       }
     }
@@ -793,24 +866,30 @@
         let assetCodeVal = document.getElementById("reqAsset").value.trim();
         let compCodeVal = document.getElementById("reqComp").value.trim();
 
-        // ตรวจสอบขั้นสุดท้ายป้องกัน assetCode สลับกับ componentCode
-        const upperSubmitAsset = assetCodeVal.toUpperCase();
-        const isDirectMachine = rawAssets.some(a => 
-          (a.assetCode && a.assetCode.toUpperCase() === upperSubmitAsset) ||
-          (a.asset_code && a.asset_code.toUpperCase() === upperSubmitAsset)
-        );
-
-        if (!isDirectMachine) {
-          const compMatch = rawComponents.find(c => 
-            c.compCode && 
-            c.compCode.toUpperCase() === upperSubmitAsset && 
-            c.assetCode && 
-            c.assetCode.toUpperCase() !== upperSubmitAsset
-          );
-          if (compMatch) {
-            if (!compCodeVal) compCodeVal = compMatch.compCode;
-            assetCodeVal = compMatch.assetCode;
+        // 1. กรณีใส่รหัสชิ้นส่วนย่อย (>= 3 ส่วน เช่น FA-AR001-CC01) ลงในช่อง Asset Code
+        if (isSubComponentCode(assetCodeVal)) {
+          if (!compCodeVal) {
+            compCodeVal = assetCodeVal;
           }
+          assetCodeVal = extractParentAssetCode(assetCodeVal);
+        }
+
+        // 2. กรณีช่อง Asset Code เผลอมีแค่หมวดหมู่ (เช่น FA, MC) แต่รหัสจริงอยู่ในช่อง Component
+        if (!assetCodeVal.includes("-") && compCodeVal.includes("-")) {
+          if (isSubComponentCode(compCodeVal)) {
+            assetCodeVal = extractParentAssetCode(compCodeVal);
+          } else {
+            assetCodeVal = compCodeVal;
+            compCodeVal = "";
+          }
+        }
+
+        // 3. หาก Component Code ซ้ำกับ Asset Code หรือเป็นแค่รหัสเครื่องจักรหลัก 2 ส่วน ให้ล้างช่อง Component
+        if (
+          compCodeVal &&
+          (compCodeVal.toUpperCase() === assetCodeVal.toUpperCase() || !isSubComponentCode(compCodeVal))
+        ) {
+          compCodeVal = "";
         }
 
         const payload = {

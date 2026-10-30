@@ -1687,13 +1687,65 @@
     /**
      * Master Data for Modal (Assets & Components)
      */
+    function isSubComponentCode(code) {
+      if (!code) return false;
+      const parts = String(code).trim().split("-").filter(Boolean);
+      return parts.length >= 3;
+    }
+
+    function extractParentAssetCode(code) {
+      if (!code) return "";
+      const clean = String(code).trim();
+      const parts = clean.split("-").filter(Boolean);
+      if (parts.length >= 3) {
+        return `${parts[0]}-${parts[1]}`;
+      }
+      return clean;
+    }
+
     async function loadMachineMasterData() {
       if (rawAssets.length > 0) return;
       try {
         const json = await CmmsApi.getMachines();
         if (json && json.status === "success") {
-          rawAssets = json.data?.assets || [];
-          rawComponents = json.data?.components || [];
+          const fetchedAssets = json.data?.assets || [];
+          const fetchedComponents = json.data?.components || [];
+          const assetMap = new Map();
+          fetchedAssets.forEach(a => {
+            const code = String(a.assetCode || a.asset_code || "").trim();
+            if (code) assetMap.set(code.toUpperCase(), a);
+          });
+
+          const validComponents = [];
+          fetchedComponents.forEach(c => {
+            const compCode = String(c.compCode || c.component_code || "").trim();
+            if (!compCode) return;
+            if (!isSubComponentCode(compCode)) {
+              const upper = compCode.toUpperCase();
+              if (!assetMap.has(upper)) {
+                assetMap.set(upper, {
+                  assetCode: compCode,
+                  asset_code: compCode,
+                  machineName: c.compName || c.component_name || compCode,
+                  asset_name: c.compName || c.component_name || compCode,
+                  department: "",
+                  location: ""
+                });
+              }
+            } else {
+              const parentCode = extractParentAssetCode(compCode);
+              validComponents.push({
+                ...c,
+                compCode,
+                component_code: compCode,
+                assetCode: parentCode,
+                parent_asset_code: parentCode
+              });
+            }
+          });
+
+          rawAssets = Array.from(assetMap.values());
+          rawComponents = validComponents;
           renderModalAssetDatalist();
         }
       } catch (err) {
@@ -1721,12 +1773,18 @@
       }
       val = val.trim();
 
-      // Check if user entered a component code directly
-      const compMatch = rawComponents.find(c => c.compCode && c.compCode.toUpperCase() === val.toUpperCase());
-      if (compMatch) {
-        document.getElementById("modalAssetCode").value = compMatch.assetCode;
-        document.getElementById("modalComponentCode").value = compMatch.compCode;
-        val = compMatch.assetCode;
+      // แยกเป็น Component เฉพาะเมื่อเป็นรหัสชิ้นส่วนย่อย (>= 3 ส่วน เช่น FA-AR001-CC01) เท่านั้น
+      if (isSubComponentCode(val)) {
+        const compMatch = rawComponents.find(c => c.compCode && c.compCode.toUpperCase() === val.toUpperCase());
+        const parentCode = (compMatch && compMatch.assetCode && compMatch.assetCode.includes("-"))
+          ? compMatch.assetCode
+          : extractParentAssetCode(val);
+        const compCode = compMatch ? compMatch.compCode : val;
+        if (parentCode && parentCode.includes("-")) {
+          document.getElementById("modalAssetCode").value = parentCode;
+          document.getElementById("modalComponentCode").value = compCode;
+          val = parentCode;
+        }
       }
 
       updateModalComponentDatalist(val);
@@ -1744,7 +1802,10 @@
       const compList = document.getElementById("modal-component-list");
       if (!compList) return;
       compList.innerHTML = "";
-      const filtered = rawComponents.filter(c => !assetCode || c.assetCode === assetCode || (c.compCode && c.compCode.startsWith(assetCode)));
+      const filtered = rawComponents.filter(c =>
+        isSubComponentCode(c.compCode) &&
+        (!assetCode || (c.assetCode && c.assetCode.toUpperCase() === assetCode.toUpperCase()))
+      );
       filtered.forEach(item => {
         const opt = document.createElement("option");
         opt.value = item.compCode;
@@ -1766,8 +1827,21 @@
 
       // ค้นหาข้อมูลคำขอจาก rawPendingTasks เพื่อดึง asset_code และ component_code เดิม
       const reqItem = rawPendingTasks.find(t => (t.request_code || t.requestCode) === requestCode);
-      const curAsset = reqItem ? (reqItem.asset_code || reqItem.assetCode || '') : '';
-      const curComp = reqItem ? (reqItem.component_code || reqItem.componentCode || '') : '';
+      let curAsset = reqItem ? String(reqItem.asset_code || reqItem.assetCode || '').trim() : '';
+      let curComp = reqItem ? String(reqItem.component_code || reqItem.componentCode || '').trim() : '';
+      if (curComp === '-') curComp = '';
+
+      // Auto-heal กรณีข้อมูลเดิมสลับช่อง (เช่น asset_code เป็น 'FA' และ component_code เป็น 'FA-AR001')
+      if (!curAsset.includes('-') && curComp.includes('-')) {
+        if (isSubComponentCode(curComp)) {
+          curAsset = extractParentAssetCode(curComp);
+        } else {
+          curAsset = curComp;
+          curComp = '';
+        }
+      } else if (curComp && (curComp.toUpperCase() === curAsset.toUpperCase() || !isSubComponentCode(curComp))) {
+        curComp = '';
+      }
 
       document.getElementById('modalAssetCode').value = curAsset;
       document.getElementById('modalComponentCode').value = curComp;

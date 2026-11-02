@@ -333,6 +333,18 @@
         <img id="modalImage" src="" alt="Ticket Image" style="width: 100%; max-height: 220px; object-fit: contain; background: #000; border-radius: var(--radius-md);" />
       </div>
 
+      <!-- Accepted / Closed Work Order Summary Box -->
+      <div id="acceptedSummaryBox" style="display: none; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius-md); padding: 12px; margin-bottom: 14px;">
+        <div style="font-size: 11px; font-weight: 700; color: #15803d; margin-bottom: 6px;">
+          <i class="fa-solid fa-circle-check" style="margin-right: 4px;"></i> ข้อมูลการตรวจรับงาน (Work Order)
+        </div>
+        <div style="font-size: 12px; display: grid; gap: 5px; color: var(--text-main);">
+          <div><strong style="color: var(--text-sub);">วันที่เครื่องเริ่มรันอีกครั้ง:</strong> <span id="modalRestartedAt" style="font-weight: 700; color: #0f766e;">-</span></div>
+          <div><strong style="color: var(--text-sub);">ความพึงพอใจ:</strong> <span id="modalSatisfactionScore" style="font-weight: 700; color: #d97706;">-</span></div>
+          <div><strong style="color: var(--text-sub);">ข้อเสนอแนะ:</strong> <span id="modalSatisfactionFeedback">-</span></div>
+        </div>
+      </div>
+
       <!-- Status Timeline (5 Stages) -->
       <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); margin-bottom: 8px;">ลำดับขั้นตอนการดำเนินงาน (5-Stage Flow)</div>
       <div class="timeline">
@@ -378,6 +390,32 @@
         </div>
         <h3 style="font-size: 16px; font-weight: 700; color: var(--text-main); margin-bottom: 4px;">ยืนยันรับมอบงานซ่อม</h3>
         <p style="font-size: 12px; color: var(--text-muted);" id="acceptTicketLabel">Ticket No: -</p>
+      </div>
+
+      <!-- Machine Restarted At (work_orders.restarted_at) -->
+      <div style="margin-bottom: 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: var(--radius-md); padding: 10px 12px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+          <label for="acceptRestartedAt" style="font-size: 12px; font-weight: 700; color: var(--text-main);">
+            <i class="fa-solid fa-power-off" style="color: #0d9488; margin-right: 4px;"></i>
+            วันที่เครื่องเริ่มรันอีกครั้ง <span style="color: #ef4444;">*</span>
+          </label>
+          <button
+            type="button"
+            onclick="setRestartedAtNow()"
+            style="border: none; background: #e0f2fe; color: #0284c7; font-size: 10.5px; font-weight: 700; padding: 3px 8px; border-radius: 6px; cursor: pointer;"
+          >
+            เวลาปัจจุบัน
+          </button>
+        </div>
+        <input
+          type="datetime-local"
+          id="acceptRestartedAt"
+          required
+          style="width: 100%; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 8px 10px; font-size: 13px; font-family: inherit; color: var(--text-main); background: #fff; outline: none;"
+        />
+        <div style="font-size: 10.5px; color: var(--text-muted); margin-top: 4px;">
+          บันทึกเข้าตาราง Work Order (restarted_at)
+        </div>
       </div>
 
       <div style="margin-bottom: 16px; text-align: center;">
@@ -731,10 +769,55 @@
         acceptBox.style.display = "none";
       }
 
+      // Show / Hide Accepted Work Order Summary Box (restarted_at, satisfaction_score, satisfaction_feedback)
+      const acceptedSummaryBox = document.getElementById("acceptedSummaryBox");
+      const restartedAtVal = ticket.restartedAt || ticket.restarted_at || "";
+      const satScoreVal = ticket.satisfactionScore ?? ticket.satisfaction_score ?? null;
+      const satFeedbackVal = ticket.satisfactionFeedback || ticket.satisfaction_feedback || "";
+      if (acceptedSummaryBox) {
+        if (restartedAtVal || satScoreVal !== null || s.includes("closed")) {
+          acceptedSummaryBox.style.display = "block";
+          document.getElementById("modalRestartedAt").textContent = restartedAtVal
+            ? formatThaiDateTimeDisplay(restartedAtVal)
+            : "-";
+          document.getElementById("modalSatisfactionScore").textContent = satScoreVal
+            ? `${"⭐".repeat(Math.min(5, Math.max(1, Number(satScoreVal))))} (${satScoreVal}/5)`
+            : "-";
+          document.getElementById("modalSatisfactionFeedback").textContent = satFeedbackVal || "-";
+        } else {
+          acceptedSummaryBox.style.display = "none";
+        }
+      }
+
       // Update 5-stage Stepper
       updateTimelineStepper(status, ticket.requestStatus, ticket.workorderStatus);
 
       document.getElementById("detailModal").classList.add("active");
+    }
+
+    function formatThaiDateTimeDisplay(val) {
+      if (!val) return "-";
+      const d = new Date(val);
+      if (isNaN(d.getTime())) return String(val);
+      return d.toLocaleString("th-TH", {
+        year: "numeric",
+        month: "short",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit"
+      });
+    }
+
+    function getLocalDateTimeInputValue(date = new Date()) {
+      const pad = (n) => String(n).padStart(2, "0");
+      return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+    }
+
+    function setRestartedAtNow() {
+      const input = document.getElementById("acceptRestartedAt");
+      if (input) {
+        input.value = getLocalDateTimeInputValue(new Date());
+      }
     }
 
     function updateTimelineStepper(status, reqStatus = "", woStatus = "") {
@@ -787,8 +870,12 @@
     function openAcceptModal() {
       if (!currentSelectedTicket) return;
       const ticketNo = currentSelectedTicket.ticketNo || currentSelectedTicket.requestCode || currentSelectedTicket.id || "-";
-      document.getElementById("acceptTicketLabel").textContent = `ใบแจ้งซ่อม: #${ticketNo}`;
+      const woCode = currentSelectedTicket.workorderCode || currentSelectedTicket.workorder_code || currentSelectedTicket.woCode || "";
+      document.getElementById("acceptTicketLabel").textContent = woCode
+        ? `ใบแจ้งซ่อม: #${ticketNo} (WO: ${woCode})`
+        : `ใบแจ้งซ่อม: #${ticketNo}`;
       document.getElementById("acceptFeedback").value = "";
+      setRestartedAtNow();
       setRatingStar(5);
       document.getElementById("acceptModal").classList.add("active");
     }
@@ -822,6 +909,18 @@
       if (!currentSelectedTicket) return;
       const requestCode = currentSelectedTicket.requestCode || currentSelectedTicket.ticketNo || currentSelectedTicket.id;
       const feedback = document.getElementById("acceptFeedback").value.trim();
+      const restartedAtInput = document.getElementById("acceptRestartedAt")?.value || "";
+      if (!restartedAtInput) {
+        alert("กรุณาระบุวันที่และเวลาที่เครื่องเริ่มรันอีกครั้ง");
+        document.getElementById("acceptRestartedAt")?.focus();
+        return;
+      }
+
+      const parsedRestarted = new Date(restartedAtInput);
+      const restartedAtIso = !isNaN(parsedRestarted.getTime())
+        ? parsedRestarted.toISOString()
+        : new Date().toISOString();
+
       const acceptedBy = activeUser ? (activeUser.displayName || activeUser.userName) : "Requester";
 
       const btn = document.getElementById("btnConfirmAccept");
@@ -833,14 +932,19 @@
           requestCode: requestCode,
           ticketNo: requestCode,
           workorderCode: currentSelectedTicket.workorderCode || currentSelectedTicket.workorder_code || currentSelectedTicket.woCode || "",
+          restartedAt: restartedAtIso,
+          restarted_at: restartedAtIso,
+          score: currentRatingScore,
           satisfactionScore: currentRatingScore,
+          satisfaction_score: currentRatingScore,
           satisfactionFeedback: feedback,
+          satisfaction_feedback: feedback,
           feedback: feedback,
           acceptedBy: acceptedBy
         };
 
         const res = await CmmsApi.acceptRequest(payload);
-        alert(`รับมอบงาน #${requestCode} เรียบร้อยแล้ว!\nคะแนนประเมิน: ${currentRatingScore}/5 ดาว\nขอบคุณสำหรับการใช้บริการ`);
+        alert(`รับมอบงาน #${requestCode} เรียบร้อยแล้ว!\nวันที่เครื่องเริ่มรัน: ${formatThaiDateTimeDisplay(restartedAtIso)}\nคะแนนประเมิน: ${currentRatingScore}/5 ดาว\nขอบคุณสำหรับการใช้บริการ`);
         
         closeAcceptModal();
         closeDetailModal();
@@ -849,6 +953,9 @@
         currentSelectedTicket.status = "Closed";
         currentSelectedTicket.requestStatus = "Closed";
         currentSelectedTicket.workorderStatus = "Closed";
+        currentSelectedTicket.restartedAt = restartedAtIso;
+        currentSelectedTicket.satisfactionScore = currentRatingScore;
+        currentSelectedTicket.satisfactionFeedback = feedback;
 
         await fetchTickets(true);
       } catch (err) {
